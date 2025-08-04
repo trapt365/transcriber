@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=sqlite:///app.db
+    volumes:
+      - .:/app
+      - uploads:/app/uploads
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+  celery:
+    build: .
+    command: celery -A backend.celery_app worker --loglevel=info
+    environment:
+      - FLASK_ENV=development
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=sqlite:///app.db
+    volumes:
+      - .:/app
+      - uploads:/app/uploads
+    depends_on:
+      - redis
+      - app
+    restart: unless-stopped
+
+  celery-beat:
+    build: .
+    command: celery -A backend.celery_app beat --loglevel=info
+    environment:
+      - FLASK_ENV=development
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=sqlite:///app.db
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - app
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  uploads:
