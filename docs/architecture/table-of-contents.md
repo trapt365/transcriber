@@ -1,0 +1,11 @@
+# Table of Contents
+1. [System Architecture Overview](#system-architecture-overview)
+2. [Technology Stack Details](#technology-stack-details)
+3. [Database Design](#database-design)
+4. [API Architecture](#api-architecture)
+5. [File Processing Pipeline](#file-processing-pipeline)
+6. [Deployment Architecture](#deployment-architecture)
+7. [Security Architecture](#security-architecture)
+8. [Monitoring & Observability](#monitoring--observability)
+9. [Scalability Plan](#scalability-plan)
+10. [Phase 2 Evolution Path](#phase-2-evolution-path)

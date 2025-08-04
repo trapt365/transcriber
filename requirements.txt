@@ -1,0 +1,30 @@
+# Core Flask Dependencies
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Flask-Migrate==4.0.5
+Flask-CORS==4.0.0
+Marshmallow==3.19.0
+
+# Processing & Queue Management
+Celery==5.3.4
+Redis==5.0.1
+
+# File Processing
+pydub==0.25.1
+librosa==0.10.1
+
+# Yandex SpeechKit SDK
+speechkit==2.2.0
+
+# Environment Configuration
+python-dotenv==1.0.0
+
+# Development Dependencies
+pytest==7.4.3
+pytest-cov==4.1.0
+black==23.11.0
+flake8==6.1.0
+pre-commit==3.5.0
+
+# Production Dependencies
+gunicorn==21.2.0
