@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Job Status - Audio Transcriber{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/status.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <!-- Back to Upload -->
+            <div class="mb-4">
+                <a href="{{ url_for('upload.upload_page') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Upload
+                </a>
+            </div>
+
+            <!-- Job Status Card -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-file-earmark-music me-2"></i>
+                        <span id="fileName">{{ job.original_filename }}</span>
+                    </h4>
+                </div>
+                
+                <div class="card-body p-4">
+                    <!-- Status Display -->
+                    <div id="statusSection" class="mb-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h5 class="mb-0">Processing Status</h5>
+                            <span id="statusBadge" class="badge bg-secondary fs-6">Loading...</span>
+                        </div>
+                        
+                        <!-- Progress Bar -->
+                        <div class="progress mb-3" style="height: 10px;">
+                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%"></div>
+                        </div>
+                        
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <small class="text-muted">Job ID</small>
+                                <div id="jobId" class="fw-medium text-break">{{ job.job_id }}</div>
+                            </div>
+                            <div class="col-md-4">
+                                <small class="text-muted">Created</small>
+                                <div id="createdAt" class="fw-medium">{{ job.created_at.strftime('%H:%M %d/%m/%Y') }}</div>
+                            </div>
+                            <div class="col-md-4">
+                                <small class="text-muted">File Size</small>
+                                <div id="fileSize" class="fw-medium">{{ "%.1f"|format(job.file_size / 1024 / 1024) }} MB</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Error Display -->
+                    <div id="errorSection" class="alert alert-danger d-none" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Processing Failed</strong>
+                        <p id="errorMessage" class="mb-0 mt-2"></p>
+                    </div>
+                    
+                    <!-- Processing Info -->
+                    <div id="processingSection" class="d-none">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm text-primary me-3" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div>
+                                <div class="fw-medium">Processing your audio file...</div>
+                                <small class="text-muted">This may take a few minutes depending on file size</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Results Section -->
+                    <div id="resultsSection" class="d-none">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h5 class="mb-0">Transcription Results</h5>
+                            <div class="btn-group">
+                                <button id="copyBtn" class="btn btn-sm btn-outline-primary" title="Copy to clipboard">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                                <button id="downloadBtn" class="btn btn-sm btn-outline-success" title="Download transcript">
+                                    <i class="bi bi-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Result Stats -->
+                        <div id="resultStats" class="row g-3 mb-4">
+                            <div class="col-6 col-md-3">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <div id="confidenceScore" class="h5 mb-1 text-success">-</div>
+                                    <small class="text-muted">Confidence</small>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <div id="wordCount" class="h5 mb-1 text-primary">-</div>
+                                    <small class="text-muted">Words</small>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <div id="speakerCount" class="h5 mb-1 text-info">-</div>
+                                    <small class="text-muted">Speakers</small>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="text-center p-3 bg-light rounded">
+                                    <div id="processingTime" class="h5 mb-1 text-warning">-</div>
+                                    <small class="text-muted">Duration</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Transcript Display -->
+                        <div class="mb-4">
+                            <h6 class="mb-2">Full Transcript</h6>
+                            <div id="transcriptText" class="p-3 bg-light rounded border" style="max-height: 300px; overflow-y: auto;">
+                                Loading transcript...
+                            </div>
+                        </div>
+                        
+                        <!-- Speaker Breakdown -->
+                        <div id="speakersSection" class="d-none mb-4">
+                            <h6 class="mb-2">Speaker Breakdown</h6>
+                            <div id="speakersList"></div>
+                        </div>
+                        
+                        <!-- Segments with Timestamps -->
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h6 class="mb-0">Timestamped Segments</h6>
+                                <button id="toggleSegments" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-chevron-down"></i> Show Details
+                                </button>
+                            </div>
+                            <div id="segmentsList" class="d-none" style="max-height: 400px; overflow-y: auto;">
+                                Loading segments...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div id="actionButtons" class="text-center mt-4">
+                        <button id="refreshBtn" class="btn btn-primary me-2">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Refresh Status
+                        </button>
+                        <button id="cancelBtn" class="btn btn-outline-danger d-none">
+                            <i class="bi bi-x-circle me-2"></i>Cancel Job
+                        </button>
+                        <a href="{{ url_for('upload.upload_page') }}" class="btn btn-success d-none" id="newUploadBtn">
+                            <i class="bi bi-plus-circle me-2"></i>Upload Another File
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden elements for data -->
+<div id="jobData" 
+     data-job-id="{{ job.job_id }}" 
+     data-status="{{ job.status.value }}"
+     style="display: none;"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/status.js') }}"></script>
+<script>
+    // Initialize status page with job data
+    document.addEventListener('DOMContentLoaded', function() {
+        const jobData = document.getElementById('jobData');
+        if (jobData && window.AudioTranscriber && window.AudioTranscriber.status) {
+            window.AudioTranscriber.status.init({
+                jobId: jobData.dataset.jobId,
+                initialStatus: jobData.dataset.status
+            });
+        }
+    });
+</script>
+{% endblock %}

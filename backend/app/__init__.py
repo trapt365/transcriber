@@ -8,7 +8,9 @@ from backend.extensions import init_extensions
 
 def create_app():
     """Application factory pattern."""
-    app = Flask(__name__)
+    app = Flask(__name__, 
+                template_folder='../../frontend/templates',
+                static_folder='../../frontend/static')
     
     # Load configuration
     config_class = get_config()
@@ -31,6 +33,13 @@ def create_app():
         upload_folder=app.config.get('UPLOAD_FOLDER')
     )
     
+    # Register blueprints
+    from backend.app.routes.upload import upload_bp
+    from backend.app.routes.jobs import jobs_bp
+    
+    app.register_blueprint(upload_bp)
+    app.register_blueprint(jobs_bp)
+    
     # Health check endpoints
     @app.route('/health')
     def health_check():
@@ -52,9 +61,10 @@ def create_app():
                 'checked_at': datetime.utcnow().isoformat()
             }, 503
     
-    # Basic route
+    # Basic route - redirect to upload page
     @app.route('/')
     def index():
-        return {'message': 'Transcriber API', 'version': '0.1.0'}, 200
+        from flask import redirect, url_for
+        return redirect(url_for('upload.upload_page'))
     
     return app

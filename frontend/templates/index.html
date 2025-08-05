@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Audio - Audio Transcriber{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/upload.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <!-- Page Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-5 fw-bold text-primary mb-3">Upload Audio File</h1>
+                <p class="lead text-muted">
+                    Upload your meeting recordings for professional transcription. 
+                    Supported formats: WAV, MP3, FLAC (up to 500MB)
+                </p>
+            </div>
+
+            <!-- Upload Form -->
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <form id="uploadForm" enctype="multipart/form-data" novalidate>
+                        <!-- CSRF Token -->
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        
+                        <!-- Drag and Drop Area -->
+                        <div id="dropZone" class="upload-area border-2 border-dashed rounded-3 p-5 text-center position-relative">
+                            <div id="dropZoneContent" class="drop-zone-content">
+                                <i class="bi bi-cloud-upload display-1 text-primary mb-3"></i>
+                                <h4 class="mb-3">Drag & Drop Your Audio File</h4>
+                                <p class="text-muted mb-4">or click to browse your files</p>
+                                
+                                <!-- File Input -->
+                                <input type="file" id="audioFile" name="file" class="d-none" 
+                                       accept=".wav,.mp3,.flac,audio/wav,audio/mpeg,audio/flac">
+                                
+                                <button type="button" id="browseBtn" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-folder2-open me-2"></i>Choose File
+                                </button>
+                            </div>
+                            
+                            <!-- Upload Progress (hidden by default) -->
+                            <div id="uploadProgress" class="upload-progress d-none">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="bi bi-file-earmark-music text-primary me-2"></i>
+                                    <span id="fileName" class="fw-medium"></span>
+                                    <button type="button" id="cancelBtn" class="btn btn-sm btn-outline-danger ms-auto">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="progress mb-2" style="height: 8px;">
+                                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                         role="progressbar" style="width: 0%"></div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between text-sm">
+                                    <span id="progressText">0%</span>
+                                    <span id="speedText"></span>
+                                </div>
+                                
+                                <div class="text-center mt-3">
+                                    <small class="text-muted" id="timeRemaining"></small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- File Information (hidden by default) -->
+                        <div id="fileInfo" class="file-info mt-3 d-none">
+                            <div class="row g-3">
+                                <div class="col-sm-4">
+                                    <label class="form-label text-muted">File Size</label>
+                                    <div id="fileSize" class="fw-medium"></div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <label class="form-label text-muted">Duration</label>
+                                    <div id="fileDuration" class="fw-medium">Calculating...</div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <label class="form-label text-muted">Format</label>
+                                    <div id="fileFormat" class="fw-medium"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Error Display -->
+                        <div id="errorDisplay" class="alert alert-danger d-none mt-3" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <span id="errorMessage"></span>
+                        </div>
+                        
+                        <!-- Success Display -->
+                        <div id="successDisplay" class="alert alert-success d-none mt-3" role="alert">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <span id="successMessage"></span>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="text-center mt-4">
+                            <button type="submit" id="submitBtn" class="btn btn-success btn-lg px-5 d-none">
+                                <i class="bi bi-upload me-2"></i>Start Transcription
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Help Section -->
+            <div class="mt-5">
+                <div class="card bg-light border-0">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-info-circle me-2"></i>Supported File Formats
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6 class="text-primary">WAV Files</h6>
+                                <p class="small text-muted mb-0">Uncompressed audio, best quality</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="text-primary">MP3 Files</h6>
+                                <p class="small text-muted mb-0">Compressed audio, good compatibility</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="text-primary">FLAC Files</h6>
+                                <p class="small text-muted mb-0">Lossless compression, high quality</p>
+                            </div>
+                        </div>
+                        <hr class="my-3">
+                        <p class="small text-muted mb-0">
+                            <strong>Maximum file size:</strong> 500MB • 
+                            <strong>Recommended:</strong> Clear audio recordings without background noise
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+<script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+{% endblock %}

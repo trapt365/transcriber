@@ -3,6 +3,7 @@ Flask==2.3.3
 Flask-SQLAlchemy==3.0.5
 Flask-Migrate==4.0.5
 Flask-CORS==4.0.0
+Flask-WTF==1.2.1
 Marshmallow==3.19.0
 
 # Processing & Queue Management

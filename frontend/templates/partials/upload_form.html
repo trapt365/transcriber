@@ -1,0 +1,76 @@
+<!-- Reusable Upload Form Component -->
+<div class="upload-form-component">
+    <form id="uploadForm" enctype="multipart/form-data" novalidate>
+        <!-- CSRF Token -->
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        
+        <!-- Drag and Drop Area -->
+        <div id="dropZone" class="upload-area border-2 border-dashed rounded-3 p-4 text-center position-relative">
+            <div id="dropZoneContent" class="drop-zone-content">
+                <i class="bi bi-cloud-upload display-1 text-primary mb-3"></i>
+                <h5 class="mb-3">Drag & Drop Your Audio File</h5>
+                <p class="text-muted mb-3">or click to browse your files</p>
+                
+                <!-- File Input -->
+                <input type="file" id="audioFile" name="file" class="d-none" 
+                       accept=".wav,.mp3,.flac,audio/wav,audio/mpeg,audio/flac">
+                
+                <button type="button" id="browseBtn" class="btn btn-primary">
+                    <i class="bi bi-folder2-open me-2"></i>Choose File
+                </button>
+            </div>
+            
+            <!-- Upload Progress (hidden by default) -->
+            <div id="uploadProgress" class="upload-progress d-none">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-file-earmark-music text-primary me-2"></i>
+                    <span id="fileName" class="fw-medium"></span>
+                    <button type="button" id="cancelBtn" class="btn btn-sm btn-outline-danger ms-auto">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                
+                <div class="progress mb-2" style="height: 6px;">
+                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 0%"></div>
+                </div>
+                
+                <div class="d-flex justify-content-between small">
+                    <span id="progressText">0%</span>
+                    <span id="speedText"></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- File Information -->
+        <div id="fileInfo" class="file-info mt-3 d-none">
+            <div class="row g-2 text-sm">
+                <div class="col-4">
+                    <span class="text-muted">Size:</span>
+                    <span id="fileSize" class="fw-medium"></span>
+                </div>
+                <div class="col-4">
+                    <span class="text-muted">Duration:</span>
+                    <span id="fileDuration" class="fw-medium">-</span>
+                </div>
+                <div class="col-4">
+                    <span class="text-muted">Format:</span>
+                    <span id="fileFormat" class="fw-medium"></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Error Display -->
+        <div id="errorDisplay" class="alert alert-danger d-none mt-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span id="errorMessage"></span>
+        </div>
+        
+        <!-- Submit Button -->
+        <div class="text-center mt-3">
+            <button type="submit" id="submitBtn" class="btn btn-success px-4 d-none">
+                <i class="bi bi-upload me-2"></i>Upload File
+            </button>
+        </div>
+    </form>
+</div>

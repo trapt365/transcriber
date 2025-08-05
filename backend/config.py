@@ -24,7 +24,8 @@ class Config:
     
     # File Upload Configuration
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or 'uploads'
-    MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH') or 104857600)  # 100MB
+    MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH') or 524288000)  # 500MB
+    MAX_FILE_SIZE = int(os.environ.get('MAX_FILE_SIZE') or 524288000)  # 500MB
     ALLOWED_EXTENSIONS = set(
         os.environ.get('ALLOWED_EXTENSIONS', 'wav,mp3,m4a,flac,ogg').split(',')
     )
