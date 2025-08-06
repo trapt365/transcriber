@@ -16,12 +16,11 @@ def index():
 def create_app():
     """Factory function for gunicorn - returns the full app."""
     try:
-        import sys
-        import os
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        from app import create_app as factory_create_app
-        return factory_create_app()[0]
-    except Exception:
+        from backend.app import create_app as factory_create_app
+        app_instance, _ = factory_create_app()
+        return app_instance
+    except Exception as e:
+        print(f"Failed to create app using factory: {e}")
         return app
 
 if __name__ == '__main__':
