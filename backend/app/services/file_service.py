@@ -262,6 +262,33 @@ class FileService:
                 raise
             raise StorageError(f"Failed to save file: {str(e)}") from e
     
+    def validate_and_save_upload(self, file_obj, job_id: str = None) -> Dict[str, Any]:
+        """
+        Validate and save uploaded file in one step.
+        
+        Args:
+            file_obj: Flask file object from request.files
+            job_id: Optional job ID for naming
+            
+        Returns:
+            Dictionary with file storage and validation information
+            
+        Raises:
+            FileValidationError: If validation fails
+            StorageError: If saving fails
+        """
+        if not hasattr(file_obj, 'filename') or not file_obj.filename:
+            raise FileValidationError("No filename provided")
+        
+        # Use the existing save_file method which includes validation
+        result = self.save_file(file_obj, file_obj.filename, job_id)
+        
+        # Add format field for compatibility with upload route
+        if 'audio_format' in result:
+            result['format'] = result['audio_format'].value
+        
+        return result
+    
     def delete_file(self, file_path: str) -> bool:
         """
         Delete file from storage.
