@@ -4,6 +4,7 @@ Flask-SQLAlchemy==3.0.5
 Flask-Migrate==4.0.5
 Flask-CORS==4.0.0
 Flask-WTF==1.2.1
+Flask-SocketIO==5.3.6
 Marshmallow==3.19.0
 
 # Processing & Queue Management
@@ -13,9 +14,17 @@ Redis==5.0.1
 # File Processing
 pydub==0.25.1
 librosa==0.10.1
+numpy==1.24.3
 
 # Yandex SpeechKit SDK
 speechkit==2.2.0
+
+# gRPC dependencies (specify versions to avoid compilation issues)
+grpcio==1.60.0
+grpcio-tools==1.60.0
+
+# HTTP Client
+requests==2.31.0
 
 # Environment Configuration
 python-dotenv==1.0.0

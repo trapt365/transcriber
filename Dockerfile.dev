@@ -14,9 +14,16 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         gcc \
         g++ \
+        make \
+        cmake \
+        build-essential \
+        pkg-config \
+        libffi-dev \
+        libssl-dev \
         ffmpeg \
         libsndfile1 \
         curl \
+        git \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -24,7 +31,8 @@ COPY requirements.txt requirements-dev.txt ./
 
 # Install Python dependencies (including dev dependencies)
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements-dev.txt
+    && pip install --no-cache-dir wheel setuptools \
+    && pip install --no-cache-dir --prefer-binary -r requirements-dev.txt
 
 # Copy project files
 COPY . .
