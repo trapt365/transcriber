@@ -7,18 +7,24 @@ class JobStatus(Enum):
     """Job processing status enumeration."""
     
     UPLOADED = "uploaded"
+    QUEUED = "queued"
     PROCESSING = "processing"
+    GENERATING_OUTPUT = "generating_output"
     COMPLETED = "completed"
     FAILED = "failed"
+    CANCELLED = "cancelled"
     
     @classmethod
     def valid_transitions(cls) -> dict:
         """Return valid status transitions."""
         return {
-            cls.UPLOADED: [cls.PROCESSING, cls.FAILED],
-            cls.PROCESSING: [cls.COMPLETED, cls.FAILED],
+            cls.UPLOADED: [cls.QUEUED, cls.FAILED, cls.CANCELLED],
+            cls.QUEUED: [cls.PROCESSING, cls.FAILED, cls.CANCELLED],
+            cls.PROCESSING: [cls.GENERATING_OUTPUT, cls.FAILED, cls.CANCELLED],
+            cls.GENERATING_OUTPUT: [cls.COMPLETED, cls.FAILED],
             cls.COMPLETED: [],  # Terminal state
-            cls.FAILED: []  # Terminal state
+            cls.FAILED: [],  # Terminal state
+            cls.CANCELLED: []  # Terminal state
         }
     
     def can_transition_to(self, new_status: 'JobStatus') -> bool:

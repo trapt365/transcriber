@@ -8,9 +8,9 @@ from werkzeug.utils import secure_filename
 from marshmallow import Schema, fields, ValidationError
 
 from backend.app.services.file_service import FileService
-from backend.app.services.processing_service import ProcessingService
 from backend.app.models.job import Job
 from backend.app.models.enums import JobStatus
+from backend.tasks.audio_processing import process_audio_task
 from backend.app.utils.exceptions import (
     FileValidationError, 
     ProcessingError, 
@@ -65,8 +65,6 @@ def upload_file():
             max_file_size=current_app.config.get('MAX_FILE_SIZE', 500 * 1024 * 1024)
         )
         
-        processing_service = ProcessingService()
-        
         # Validate and save file
         try:
             file_info = file_service.validate_and_save_upload(file)
@@ -117,10 +115,15 @@ def upload_file():
                 'message': 'Failed to create processing job'
             }), 500
         
-        # Queue processing job (async)
+        # Queue processing job with Celery (async)
         try:
-            processing_service.queue_job(job.job_id)
-            current_app.logger.info(f"Job queued for processing: {job.job_id}")
+            # Update job status to queued
+            job.status = JobStatus.QUEUED
+            db.session.commit()
+            
+            # Start Celery task
+            task_result = process_audio_task.delay(job.id)  # Use job.id (integer) instead of job_id (UUID string)
+            current_app.logger.info(f"Job queued for processing: {job.job_id}, task_id: {task_result.id}")
         except Exception as e:
             current_app.logger.warning(f"Failed to queue job {job.job_id}: {str(e)}")
             # Don't fail the upload if queuing fails - job can be processed later

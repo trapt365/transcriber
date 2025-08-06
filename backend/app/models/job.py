@@ -35,6 +35,12 @@ class Job(db.Model):
     progress = Column(Integer, nullable=False, default=0)  # 0-100
     error_message = Column(Text, nullable=True)
     
+    # Real-time status tracking
+    processing_phase = Column(String(50), nullable=True)
+    estimated_completion = Column(DateTime, nullable=True)
+    queue_position = Column(Integer, nullable=True)
+    can_cancel = Column(Boolean, nullable=False, default=True)
+    
     # Timestamps
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     started_at = Column(DateTime, nullable=True)
@@ -71,6 +77,10 @@ class Job(db.Model):
             'status': self.status,
             'progress': self.progress,
             'error_message': self.error_message,
+            'processing_phase': self.processing_phase,
+            'estimated_completion': self.estimated_completion.isoformat() if self.estimated_completion else None,
+            'queue_position': self.queue_position,
+            'can_cancel': self.can_cancel,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'started_at': self.started_at.isoformat() if self.started_at else None,
             'completed_at': self.completed_at.isoformat() if self.completed_at else None,
@@ -132,3 +142,87 @@ class Job(db.Model):
     def find_by_status(cls, status: JobStatus) -> list['Job']:
         """Find jobs by status."""
         return cls.query.filter_by(status=status.value).all()
+    
+    def get_complete_transcript_data(self) -> Optional[Dict[str, Any]]:
+        """
+        Get complete transcript data with optimized database queries.
+        
+        Returns:
+            Dict with job result, speakers, and segments data or None
+        """
+        from backend.app.models.result import JobResult
+        from backend.app.models.speaker import Speaker
+        from backend.app.models.segment import TranscriptSegment
+        
+        # Single query to get job result
+        job_result = db.session.query(JobResult).filter_by(job_id=self.id).first()
+        if not job_result:
+            return None
+        
+        # Optimized query to get speakers with their segments count
+        speakers = (db.session.query(Speaker)
+                   .filter_by(job_id=self.id)
+                   .order_by(Speaker.speaker_id)
+                   .all())
+        
+        # Optimized query to get segments with speaker relationships
+        segments = (db.session.query(TranscriptSegment)
+                   .filter_by(job_id=self.id)
+                   .order_by(TranscriptSegment.segment_order)
+                   .all())
+        
+        return {
+            'result': job_result,
+            'speakers': speakers,
+            'segments': segments
+        }
+    
+    def has_complete_transcript(self) -> bool:
+        """
+        Check if job has complete transcript data available.
+        
+        Returns:
+            True if transcript data is complete and ready for display
+        """
+        if self.status != JobStatus.COMPLETED.value:
+            return False
+        
+        # Check if we have segments (most important for transcript display)
+        segment_count = (db.session.query(TranscriptSegment)
+                        .filter_by(job_id=self.id)
+                        .count())
+        
+        return segment_count > 0
+    
+    def get_transcript_summary(self) -> Optional[Dict[str, Any]]:
+        """
+        Get transcript summary statistics for quick overview.
+        
+        Returns:
+            Dict with summary statistics or None
+        """
+        if not self.has_complete_transcript():
+            return None
+        
+        from sqlalchemy import func
+        from backend.app.models.segment import TranscriptSegment
+        from backend.app.models.speaker import Speaker
+        
+        # Single query to get segment statistics
+        segment_stats = (db.session.query(
+            func.count(TranscriptSegment.id).label('total_segments'),
+            func.max(TranscriptSegment.end_time).label('total_duration'),
+            func.avg(TranscriptSegment.confidence_score).label('avg_confidence')
+        ).filter_by(job_id=self.id).first())
+        
+        # Single query to get speaker count
+        speaker_count = (db.session.query(func.count(Speaker.id))
+                        .filter_by(job_id=self.id)
+                        .scalar())
+        
+        return {
+            'total_segments': segment_stats.total_segments or 0,
+            'total_duration': segment_stats.total_duration or 0,
+            'avg_confidence': segment_stats.avg_confidence or 0,
+            'speaker_count': speaker_count or 0
+        }

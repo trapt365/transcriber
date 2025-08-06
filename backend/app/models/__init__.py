@@ -6,6 +6,7 @@ from .result import JobResult
 from .speaker import Speaker
 from .segment import TranscriptSegment
 from .usage import UsageStats
+from .processing_history import ProcessingHistory
 
 __all__ = [
     'JobStatus',
@@ -15,5 +16,6 @@ __all__ = [
     'JobResult',
     'Speaker',
     'TranscriptSegment',
-    'UsageStats'
+    'UsageStats',
+    'ProcessingHistory'
 ]

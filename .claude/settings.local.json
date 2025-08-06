@@ -1,7 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(python:*)",
+      "Bash(chmod:*)",
+      "Bash(pip3 install:*)",
+      "Bash(git add:*)",
+      "WebFetch(domain:cloud.yandex.com)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(find:*)",
+      "Bash(true)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

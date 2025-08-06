@@ -145,6 +145,8 @@ docker-compose -f docker-compose.dev.yml up --build
 
 **If Docker is causing issues, use this native installation approach:**
 
+> **💡 VS Code Dev Containers/Codespaces Users:** You're likely in a containerized environment without systemd. Skip to the container-specific commands below where noted.
+
 #### Step 1: System Requirements & Dependencies
 
 **Install Python 3.11+ and system dependencies:**
@@ -165,9 +167,31 @@ sudo apt install build-essential pkg-config
 brew install python@3.11 ffmpeg redis
 brew services start redis
 
-# Start Redis service on Ubuntu/Debian
+# Redis Setup (Environment-Adaptive)
+# RECOMMENDED: Use our automated setup script
+chmod +x scripts/setup_redis.sh
+./scripts/setup_redis.sh
+
+# The script will:
+# 1. Detect your environment (systemd/container/macOS/Windows)  
+# 2. Install Redis using the appropriate method
+# 3. Configure fallback options if needed
+# 4. Verify the connection
+
+# Manual Redis setup (if you prefer manual control):
+# On regular Ubuntu/Debian systems:
 sudo systemctl start redis-server
 sudo systemctl enable redis-server
+
+# In containers/codespaces where systemd isn't available:
+sudo service redis-server start
+# OR run Redis directly:
+# redis-server --daemonize yes --port 6379
+
+# If Redis installation fails, the app includes automatic fallback:
+pip install fakeredis
+echo "USE_FAKE_REDIS=true" >> .env
+echo "DEVELOPMENT_MODE=true" >> .env
 ```
 
 #### Step 2: Python Environment Setup
@@ -250,6 +274,7 @@ redis-server
 ```bash
 # Test Redis connection
 redis-cli ping  # Should return "PONG"
+# OR check app health endpoint after starting: curl http://localhost:5000/api/v1/health/redis
 
 # Test Yandex API credentials
 python -c "
@@ -265,6 +290,7 @@ print('✅ API works!' if r.status_code in [200,400] else f'❌ Error: {r.status
 
 # Access application
 # Open: http://localhost:5000
+# Check system health: http://localhost:5000/api/v1/health
 ```
 
 #### Native Installation Troubleshooting
@@ -291,14 +317,29 @@ pyenv local 3.11.7
 
 **❌ Redis connection errors:**
 ```bash
-# Check Redis status
+# Check Redis status (regular systems)
 sudo systemctl status redis-server
 
-# Start Redis manually
+# For containers/codespaces without systemd:
+sudo service redis-server status
+sudo service redis-server start
+
+# Start Redis manually if service doesn't work
 redis-server --port 6379 --daemonize yes
 
 # Test connection
 redis-cli -p 6379 ping
+
+# If Redis isn't installed and you can't use sudo:
+# The app includes intelligent fallback - run the setup script:
+./scripts/setup_redis.sh
+
+# Or manually enable FakeRedis fallback:
+pip install fakeredis
+echo "USE_FAKE_REDIS=true" >> .env
+echo "DEVELOPMENT_MODE=true" >> .env
+
+# For comprehensive Redis setup guidance, see: docs/REDIS_SETUP.md
 ```
 
 **❌ FFmpeg not found:**
@@ -351,6 +392,22 @@ celery -A backend.celery_app worker --loglevel=info --detach
 
 # Set up systemd services (recommended)
 # Create service files in /etc/systemd/system/
+```
+
+#### Alternative: Redis-Free Development Mode
+
+**For development containers where Redis installation is difficult:**
+
+```bash
+# Install fakeredis (Python Redis alternative)
+pip install fakeredis
+
+# Add this to your .env file
+REDIS_URL=redis://localhost:6379/0
+DEVELOPMENT_MODE=true
+USE_FAKE_REDIS=true
+
+# The app will automatically use fakeredis in development mode
 ```
 
 ## ⚙️ Configuration

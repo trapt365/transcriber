@@ -1,9 +1,12 @@
 """Main application package."""
 
+import logging
 from datetime import datetime
 from flask import Flask
 from backend.config import get_config
-from backend.extensions import init_extensions
+from backend.extensions import init_extensions, socketio
+from backend.app.utils.config_validator import validate_config, ConfigValidationError
+from backend.app.celery_factory import init_celery
 
 
 def create_app():
@@ -16,12 +19,26 @@ def create_app():
     config_class = get_config()
     app.config.from_object(config_class)
     
+    # Validate configuration
+    try:
+        validate_config()
+        app.logger.info("Configuration validation passed")
+    except ConfigValidationError as exc:
+        app.logger.error(f"Configuration validation failed: {exc}")
+        # In development, we can continue with warnings
+        # In production, this should probably raise the exception
+        if app.config.get('FLASK_ENV') == 'production':
+            raise
+    
     # Initialize extensions
     init_extensions(app)
     
+    # Initialize Celery integration
+    init_celery(app)
+    
     # Import models to ensure they're registered with SQLAlchemy
     from backend.app.models import (
-        Job, JobResult, Speaker, TranscriptSegment, UsageStats
+        Job, JobResult, Speaker, TranscriptSegment, UsageStats, ProcessingHistory
     )
     
     # Import services
@@ -39,6 +56,9 @@ def create_app():
     
     app.register_blueprint(upload_bp)
     app.register_blueprint(jobs_bp)
+    
+    # Import WebSocket handlers to register them
+    from backend.app.routes import realtime
     
     # Health check endpoints
     @app.route('/health')
@@ -67,4 +87,4 @@ def create_app():
         from flask import redirect, url_for
         return redirect(url_for('upload.upload_page'))
     
-    return app
+    return app, socketio

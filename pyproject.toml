@@ -48,9 +48,22 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "--cov=backend --cov-report=html --cov-report=term-missing --cov-fail-under=80"
 markers = [
-    "unit: Unit tests",
-    "integration: Integration tests",
-    "slow: Slow running tests"
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "redis: marks tests as requiring Redis",
+    "database: marks tests as requiring database",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "-v",
+    "--cov=backend",
+    "--cov-report=html",
+    "--cov-report=term-missing",
+    "--cov-fail-under=80"
 ]
