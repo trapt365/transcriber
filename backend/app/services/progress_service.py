@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from backend.extensions import db
-from backend.app.models import Job, ProcessingHistory
+from backend.app.models import Job
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,7 @@ class ProgressService:
         """
         try:
             # Get historical average if available
+            from backend.app.models import ProcessingHistory
             historical_avg = ProcessingHistory.get_average_processing_time(file_size_mb)
             
             if historical_avg:
@@ -173,6 +174,7 @@ class ProgressService:
             if not job.processing_time or not job.file_size:
                 return
             
+            from backend.app.models import ProcessingHistory
             ProcessingHistory.add_processing_record(
                 file_size=job.file_size,
                 processing_duration=job.processing_time
