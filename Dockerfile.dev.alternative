@@ -49,9 +49,10 @@ RUN ln -s /usr/bin/python3.11 /usr/local/bin/python \
 # Copy requirements first for better caching
 COPY requirements.txt requirements-dev.txt ./
 
-# Install Python dependencies - try precompiled wheels first
+# Install Python dependencies - resolve protobuf conflicts first
 RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel \
-    && python -m pip install --no-cache-dir --prefer-binary grpcio==1.59.0 grpcio-tools==1.59.0 \
+    && python -m pip install --no-cache-dir --prefer-binary protobuf==3.19.6 \
+    && python -m pip install --no-cache-dir --prefer-binary grpcio==1.50.0 \
     && python -m pip install --no-cache-dir --prefer-binary -r requirements-dev.txt
 
 # Copy project files

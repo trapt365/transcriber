@@ -35,10 +35,10 @@ RUN apt-get update \
 # Copy requirements first for better caching
 COPY requirements.txt requirements-dev.txt ./
 
-# Install Python dependencies in stages to handle grpcio compilation
+# Install Python dependencies in stages to resolve protobuf conflicts
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel cython \
-    && pip install --no-cache-dir --prefer-binary --only-binary=grpcio,grpcio-tools grpcio grpcio-tools || \
-       pip install --no-cache-dir grpcio grpcio-tools \
+    && pip install --no-cache-dir --prefer-binary protobuf==3.19.6 \
+    && pip install --no-cache-dir --prefer-binary grpcio==1.50.0 \
     && pip install --no-cache-dir --prefer-binary -r requirements-dev.txt
 
 # Copy project files

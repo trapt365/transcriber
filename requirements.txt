@@ -19,12 +19,11 @@ numpy==1.24.3
 # Yandex SpeechKit SDK
 speechkit==2.2.0
 
-# Explicit protobuf version for compatibility
-protobuf>=3.19.6,<4.0.0
+# Explicit protobuf version for compatibility (required by speechkit)
+protobuf==3.19.6
 
-# gRPC dependencies - using specific stable versions to avoid compilation issues
-grpcio==1.59.0
-grpcio-tools==1.59.0
+# gRPC dependencies - compatible with protobuf 3.19.6 (required by speechkit)
+grpcio==1.50.0
 
 # HTTP Client
 requests==2.31.0

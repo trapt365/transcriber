@@ -6,10 +6,10 @@ If you encounter compilation errors with grpcio-tools during Docker build, try t
 
 ### Solution 1: Use the Updated Dockerfile.dev (Recommended)
 The updated `Dockerfile.dev` includes:
-- Specific grpcio versions (1.59.0) that are more stable
+- Compatible protobuf (3.19.6) and grpcio (1.50.0) versions
+- Staged installation to resolve dependency conflicts
 - Additional build environment variables
 - Cython3 installation for better compilation support
-- Staged installation approach with fallback
 
 ### Solution 2: Use Alternative Ubuntu-based Dockerfile
 If the Python slim image continues to cause issues, use:
@@ -20,8 +20,8 @@ docker build -f Dockerfile.dev.alternative -t transcriber-dev .
 ### Solution 3: Local Build with Different Approach
 If both Docker approaches fail, try building directly with:
 ```bash
-# Install grpcio first with binary wheels
-pip install --prefer-binary grpcio==1.59.0 grpcio-tools==1.59.0
+# Install compatible protobuf and grpcio versions first
+pip install --prefer-binary protobuf==3.19.6 grpcio==1.50.0
 
 # Then install other requirements
 pip install -r requirements-dev.txt
@@ -40,11 +40,13 @@ The following environment variables help with grpcio compilation:
 
 ### Common Issues and Fixes
 
-1. **Compilation warnings as errors**: Fixed by using precompiled wheels with `--prefer-binary` and `--only-binary` flags
+1. **Protobuf version conflicts**: Fixed by pinning compatible versions (protobuf==3.19.6, grpcio==1.50.0)
 
-2. **Missing system dependencies**: Added `cython3`, `python3-dev`, and `libc6-dev` packages
+2. **Compilation warnings as errors**: Fixed by using precompiled wheels with `--prefer-binary` flag
 
-3. **Version conflicts**: Pinned grpcio to specific stable version (1.59.0)
+3. **Missing system dependencies**: Added `cython3`, `python3-dev`, and `libc6-dev` packages
+
+4. **Dependency resolution conflicts**: Resolved by staged installation approach
 
 ### Testing the Build
 ```bash
