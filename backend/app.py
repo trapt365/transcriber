@@ -2,6 +2,8 @@
 
 from backend.app import create_app
 
+# Create the app instance for Flask CLI discovery
+app, socketio = create_app()
+
 if __name__ == '__main__':
-    app, socketio = create_app()
     socketio.run(app, debug=True)
