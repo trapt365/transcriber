@@ -2,6 +2,54 @@
 
 A professional-grade audio transcription service with **Yandex SpeechKit integration**. Built with Flask and modern web technologies, featuring real-time processing, speaker diarization, and multi-format export capabilities.
 
+## 🚀 Quick Test (Epic 1 - Current Stage)
+
+**Ready to test? Get started in 3 minutes:**
+
+```bash
+# 1. Clone and setup
+git clone https://github.com/trapt365/transcriber.git
+cd transcriber
+
+# 2. Configure Yandex credentials (see Yandex Setup below)
+cp .env.example .env
+# Edit .env: add your YANDEX_API_KEY and YANDEX_FOLDER_ID
+
+# 3. Start with Docker
+docker-compose -f docker-compose.dev.yml up --build
+
+# 4. Test the application
+# Open: http://localhost:5000
+# Upload: Small audio file (WAV/MP3, <10MB recommended)
+# Verify: Real-time status updates and transcript download
+```
+
+**🧪 Test Checklist for Epic 1:**
+- ✅ File upload interface loads
+- ✅ Audio file upload succeeds 
+- ✅ Processing status updates in real-time
+- ✅ Transcript appears when complete
+- ✅ Download transcript works
+- ✅ Error handling for invalid files
+
+**📁 Test Audio Files:** Use short samples (30sec-2min) in WAV or MP3 format for initial testing.
+
+---
+
+## 📊 Feature Status
+
+| Feature | Epic 1 Status | Description |
+|---------|---------------|-------------|
+| 📤 **File Upload** | ✅ **Implemented** | Web interface with drag-and-drop |
+| 🔄 **Processing Status** | ✅ **Implemented** | Real-time WebSocket updates |
+| 🎵 **Audio Support** | ✅ **Implemented** | WAV, MP3, M4A, FLAC, OGG |
+| 🤖 **Yandex Integration** | ✅ **Implemented** | Basic speech-to-text |
+| 📄 **Transcript Download** | ✅ **Implemented** | TXT format export |
+| 🎭 **Speaker Diarization** | 🔄 **In Progress** | Epic 2 |
+| 📊 **Multi-format Export** | 📋 **Planned** | SRT, VTT, CSV, JSON - Epic 2 |
+| 🌍 **Multi-language** | 📋 **Planned** | Auto-detection - Epic 3 |
+| 🚀 **Advanced Processing** | 📋 **Planned** | Batch, scheduling - Epic 3 |
+
 ## ✨ Features
 
 - 🎵 **Multi-format Audio Support** - WAV, MP3, M4A, FLAC, OGG (up to 500MB)
@@ -43,511 +91,155 @@ Before starting, ensure you have the following installed:
 
 ## 🎯 Yandex SpeechKit Setup (Required)
 
-### Шаг 1: Создание аккаунта Yandex Cloud
-
-1. **Регистрация:**
-   - Перейдите на [console.cloud.yandex.com](https://console.cloud.yandex.com)
-   - Нажмите **"Создать аккаунт"** или войдите через Yandex ID
-   - Подтвердите email адрес
-
-2. **Активация пробного периода:**
-   - При первом входе активируйте **пробный период** 
-   - Вы получите 4000₽ на 60 дней для тестирования
-   - Привяжите банковскую карту (средства не списываются в пробном периоде)
-
-### Шаг 2: Создание облака и каталога
-
-1. **Создайте облако (Cloud):**
-   - В консоли нажмите **"Создать облако"**
-   - Укажите название: `transcriber-cloud`
-   - Выберите организацию или создайте новую
-
-2. **Создайте каталог (Folder):**
-   - Внутри облака нажмите **"Создать каталог"**
-   - Название: `transcriber-folder`
-   - **Важно**: Скопируйте **Folder ID** - это ваш `YANDEX_FOLDER_ID`
-   - Пример ID: `b1g0123456789abcdef`
-
-### Шаг 3: Включение SpeechKit API
-
-1. **Активация сервиса:**
-   - В каталоге перейдите в **"Сервисы"**
-   - Найдите **"SpeechKit"** 
-   - Нажмите **"Подключить"** или **"Активировать"**
-   - Подтвердите включение сервиса
-
-2. **Проверка доступности:**
-   - Убедитесь, что статус SpeechKit: **"Активен"**
-   - Проверьте квоты: STT (Speech-to-Text) должен быть доступен
-
-### Шаг 4: Создание сервисного аккаунта
-
-1. **Создание аккаунта:**
-   - Перейдите в **"Сервисные аккаунты"** → **"Создать сервисный аккаунт"**
-   - Имя: `transcriber-service-account`
-   - Описание: `Service account for audio transcription`
-
-2. **Назначение ролей:**
-   - Добавьте роль: **`ai.speechkit.user`** (для использования SpeechKit)
-   - Дополнительно: **`storage.viewer`** (если планируете загрузку из Object Storage)
-   - Нажмите **"Создать"**
-
-### Шаг 5: Получение API ключа
-
-1. **Создание API ключа:**
-   - Откройте созданный сервисный аккаунт
-   - Перейдите на вкладку **"API-ключи"**
-   - Нажмите **"Создать API-ключ"**
-   - Описание: `Transcriber API Key`
-
-2. **Сохранение ключа:**
-   - **⚠️ ВАЖНО**: API ключ показывается только один раз!
-   - Скопируйте ключ: `AQVNxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
-   - Это ваш `YANDEX_API_KEY`
-   - Сохраните в надежном месте
-
-### Шаг 6: Альтернативные методы аутентификации
-
-#### Вариант A: IAM токен (временный, рекомендуется для продакшена)
+**Quick Setup:**
+1. Create Yandex Cloud account: [console.cloud.yandex.com](https://console.cloud.yandex.com)
+2. Activate trial period (4000₽ for 60 days)
+3. Create cloud → folder → service account
+4. Enable SpeechKit service
+5. Create API key for service account
+6. Add credentials to `.env` file:
 
 ```bash
-# Установка Yandex CLI
-curl https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
-
-# Аутентификация
-yc init
-
-# Получение IAM токена
-yc iam create-token
-# Токен действует 12 часов
-```
-
-#### Вариант B: Авторизованные ключи (для продакшена)
-
-```bash
-# Создание авторизованного ключа
-yc iam key create --service-account-name transcriber-service-account --output key.json
-
-# Использование в коде:
-export GOOGLE_APPLICATION_CREDENTIALS=key.json
-```
-
-### Шаг 7: Настройка квот и лимитов
-
-1. **Проверка квот:**
-   - Перейдите в **"Квоты"** → **"SpeechKit"**
-   - Убедитесь в наличии квот на:
-     - **STT requests per second**: минимум 10
-     - **STT requests per hour**: минимум 1000
-     - **STT units per month**: в зависимости от потребности
-
-2. **Увеличение квот (при необходимости):**
-   - Нажмите **"Изменить квоты"**
-   - Заполните форму с обоснованием
-   - Ожидайте одобрения (обычно 1-2 дня)
-
-### Шаг 8: Настройка биллинга
-
-1. **Платежный аккаунт:**
-   - Перейдите в **"Биллинг"**
-   - Создайте платежный аккаунт
-   - Привяжите карту для автоплатежей
-
-2. **Мониторинг расходов:**
-   - Настройте уведомления о расходах
-   - Рекомендуемый лимит: 1000₽/месяц для начала
-   - 1 час аудио ≈ 100-200₽ (зависит от качества)
-
-### Шаг 9: Тестирование подключения
-
-**Создайте тестовый скрипт:**
-
-```bash
-# test_yandex_connection.py
-import os
-import requests
-
-API_KEY = "your-api-key-here"
-FOLDER_ID = "your-folder-id-here"
-
-# Тест синхронного распознавания (для файлов <1MB)
-def test_sync_recognition():
-    url = "https://stt.api.cloud.yandex.net/speech/v1/stt:recognize"
-    
-    headers = {
-        "Authorization": f"Api-Key {API_KEY}",
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
-    
-    data = {
-        "text": "привет мир",  # Тест с синтезом речи
-        "folderId": FOLDER_ID,
-        "format": "lpcm",
-        "sampleRateHertz": "8000"
-    }
-    
-    response = requests.post(url, headers=headers, data=data)
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.text}")
-    return response.status_code == 200
-
-# Тест асинхронного распознавания
-def test_async_recognition():
-    url = "https://transcribe.api.cloud.yandex.net/speech/stt/v2/longRunningRecognize"
-    
-    headers = {
-        "Authorization": f"Api-Key {API_KEY}",
-        "Content-Type": "application/json"
-    }
-    
-    data = {
-        "config": {
-            "specification": {
-                "languageCode": "ru-RU",
-                "model": "general",
-                "profanityFilter": False,
-                "literature_text": False,
-                "format": "lpcm",
-                "sampleRateHertz": 8000
-            }
-        },
-        "audio": {
-            "uri": f"https://storage.yandexcloud.net/{FOLDER_ID}/test.wav"
-        }
-    }
-    
-    response = requests.post(url, headers=headers, json=data)
-    print(f"Async Status: {response.status_code}")
-    return response.status_code in [200, 202]
-
-if __name__ == "__main__":
-    print("🧪 Testing Yandex SpeechKit connection...")
-    
-    if not API_KEY or API_KEY == "your-api-key-here":
-        print("❌ Please set your API_KEY")
-        exit(1)
-    
-    if not FOLDER_ID or FOLDER_ID == "your-folder-id-here":
-        print("❌ Please set your FOLDER_ID") 
-        exit(1)
-    
-    print("✅ Credentials configured")
-    print("🔄 Testing API connection...")
-    
-    if test_sync_recognition():
-        print("✅ Yandex SpeechKit connection successful!")
-    else:
-        print("❌ Connection failed. Check credentials and quotas.")
-```
-
-**Запуск теста:**
-```bash
-# Установите credentials в .env или экспортируйте
-export YANDEX_API_KEY=AQVNxxxxxxxxx
-export YANDEX_FOLDER_ID=b1gxxxxxxxxx
-
-# Запустите тест
-python test_yandex_connection.py
-```
-
-### Шаг 10: Финальная конфигурация
-
-**Добавьте в `.env` файл:**
-```bash
-# ===== YANDEX SPEECHKIT CONFIGURATION =====
-# API Key (обязательно)
 YANDEX_API_KEY=AQVNxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-# Folder ID (обязательно)  
 YANDEX_FOLDER_ID=b1gxxxxxxxxxxxxxxxxx
-
-# Дополнительные настройки (опционально)
-YANDEX_API_ENDPOINT=https://stt.api.cloud.yandex.net
-YANDEX_ASYNC_ENDPOINT=https://transcribe.api.cloud.yandex.net
-YANDEX_DEFAULT_LANGUAGE=ru-RU
-YANDEX_MODEL=general
-YANDEX_SAMPLE_RATE=16000
-
-# Лимиты и таймауты
-YANDEX_REQUEST_TIMEOUT=300
-YANDEX_MAX_FILE_SIZE=1073741824  # 1GB
-YANDEX_MAX_DURATION=14400        # 4 часа
 ```
 
-### 🚨 Важные моменты безопасности:
+**📖 Detailed Setup Guide:** See [docs/YANDEX_SETUP.md](docs/YANDEX_SETUP.md) for complete step-by-step instructions.
 
-1. **Никогда не публикуйте API ключи в коде**
-2. **Используйте переменные окружения**
-3. **Регулярно ротируйте API ключи**
-4. **Мониторьте использование и расходы**
-5. **Настройте уведомления о превышении лимитов**
-
-### 💰 Тарификация (примерные цены):
-
-- **STT (распознавание речи)**: ~2.40₽ за минуту
-- **Бесплатный лимит**: 1000 запросов в месяц для разработчиков
-- **Дискирование спикеров**: +20% к стоимости
-- **Пунктуация**: включена бесплатно
-
-### 📞 Поддержка:
-
-- **Техническая поддержка**: support@cloud.yandex.com  
-- **Документация**: [cloud.yandex.ru/docs/speechkit](https://cloud.yandex.ru/docs/speechkit)
-- **Сообщество**: [Yandex Cloud Community](https://t.me/yandexcloud)
-
-## 🚀 Installation Methods
-
-### Method 1: Docker Development (Recommended)
-
-**Step 1: Clone and Setup**
+**🧪 Test Connection:**
 ```bash
-# Clone the repository
+python -c "
+import os, requests
+key, folder = os.getenv('YANDEX_API_KEY'), os.getenv('YANDEX_FOLDER_ID')
+r = requests.post('https://stt.api.cloud.yandex.net/speech/v1/stt:recognize',
+    headers={'Authorization': f'Api-Key {key}'}, 
+    data={'folderId': folder, 'format': 'lpcm', 'sampleRateHertz': '8000'})
+print('✅ API works!' if r.status_code in [200,400] else f'❌ Error: {r.status_code}')
+"
+```
+
+## 🚀 Installation
+
+### Docker Setup (Recommended for Epic 1 Testing)
+
+```bash
+# 1. Clone and setup
 git clone https://github.com/trapt365/transcriber.git
 cd transcriber
 
-# Copy and configure environment variables
+# 2. Configure credentials
 cp .env.example .env
+# Edit .env: Add your YANDEX_API_KEY and YANDEX_FOLDER_ID
+
+# 3. Start all services
+docker-compose -f docker-compose.dev.yml up --build
+
+# 4. Access application
+# Web: http://localhost:5000
+# Logs: docker-compose logs -f
 ```
 
-**Step 2: Configure Environment Variables**
-Edit `.env` file with your Yandex SpeechKit credentials:
-```bash
-# Required: Yandex SpeechKit credentials
-YANDEX_API_KEY=your-yandex-api-key-here
-YANDEX_FOLDER_ID=your-yandex-folder-id-here
+### Alternative: Local Development
 
-# Optional: Other settings (defaults are fine for development)
+<details>
+<summary>Click to expand local development setup</summary>
+
+```bash
+# 1. Setup environment
+git clone https://github.com/trapt365/transcriber.git
+cd transcriber
+python3 -m venv venv
+source venv/bin/activate  # Linux/macOS
+pip install -r requirements-dev.txt
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with your Yandex credentials
+
+# 3. Start Redis (Docker recommended)
+docker run -d --name redis -p 6379:6379 redis:7-alpine
+
+# 4. Initialize database
+export FLASK_APP=backend/app.py
+flask db init && flask db migrate -m "Initial" && flask db upgrade
+
+# 5. Start services (use separate terminals)
+# Terminal 1: Flask server
+flask run --debug --host=0.0.0.0 --port=5000
+
+# Terminal 2: Celery worker  
+celery -A backend.celery_app worker --loglevel=info --pool=threads
+```
+
+</details>
+
+## ⚙️ Configuration
+
+**Essential .env Setup:**
+```bash
+# Required for Epic 1 testing
+YANDEX_API_KEY=AQVNxxxxxxxxxxxxxxxxxxxxxxx
+YANDEX_FOLDER_ID=b1gxxxxxxxxxxxxxxxxx
+
+# Optional (defaults work for testing)
 FLASK_ENV=development
-SECRET_KEY=dev-secret-key-change-in-production
 DATABASE_URL=sqlite:///transcriber.db
 REDIS_URL=redis://redis:6379/0
 ```
 
-**Step 3: Start Development Environment**
-```bash
-# Build and start all services
-docker-compose -f docker-compose.dev.yml up --build
-
-# Run in background
-docker-compose -f docker-compose.dev.yml up --build -d
-```
-
-**Step 4: Access the Application**
-- 🌐 **Web Interface**: http://localhost:5000
-- 📊 **Redis**: localhost:6379
-- 📝 **Logs**: `docker-compose logs -f`
-
-### Method 2: Local Development
-
-**Step 1: Clone and Setup Virtual Environment**
-```bash
-# Clone repository
-git clone https://github.com/trapt365/transcriber.git
-cd transcriber
-
-# Create virtual environment
-python3 -m venv venv
-
-# Activate virtual environment
-# Linux/macOS:
-source venv/bin/activate
-# Windows:
-venv\Scripts\activate
-```
-
-**Step 2: Install Dependencies**
-```bash
-# Upgrade pip first
-pip install --upgrade pip
-
-# Install all dependencies
-pip install -r requirements-dev.txt
-
-# Verify installation
-pip list | grep -E "(flask|celery|redis)"
-```
-
-**Step 3: Setup Environment Configuration**
-```bash
-# Copy environment template
-cp .env.example .env
-
-# Edit with your credentials (use nano, vim, or any text editor)
-nano .env
-```
-
-**Step 4: Start Redis Server**
-```bash
-# Option A: Using Docker (recommended)
-docker run -d --name redis-transcriber -p 6379:6379 redis:7-alpine
-
-# Option B: System Redis (if installed locally)
-# Ubuntu/Debian:
-sudo systemctl start redis-server
-# macOS:
-brew services start redis
-
-# Verify Redis is running
-redis-cli ping  # Should respond with "PONG"
-```
-
-**Step 5: Initialize Database**
-```bash
-# Set Flask app environment
-export FLASK_APP=backend/app.py
-
-# Initialize database (creates migrations folder)
-flask db init
-
-# Create initial migration
-flask db migrate -m "Initial database setup"
-
-# Apply migrations
-flask db upgrade
-
-# Verify database was created
-ls -la *.db  # Should show transcriber.db file
-```
-
-**Step 6: Start Application Services**
-
-**Terminal 1 - Flask Web Server:**
-```bash
-# Make sure virtual environment is activated
-source venv/bin/activate  # Linux/macOS
-# venv\Scripts\activate   # Windows
-
-# Start Flask development server
-export FLASK_APP=backend/app.py
-export FLASK_ENV=development
-flask run --debug --host=0.0.0.0 --port=5000
-```
-
-**Terminal 2 - Celery Worker:**
-```bash
-# Make sure virtual environment is activated
-source venv/bin/activate  # Linux/macOS
-
-# Start Celery worker for background processing
-celery -A backend.celery_app worker --loglevel=info --pool=threads
-```
-
-**Terminal 3 - Celery Beat (Optional - for scheduled tasks):**
-```bash
-# Make sure virtual environment is activated
-source venv/bin/activate  # Linux/macOS
-
-# Start Celery beat scheduler
-celery -A backend.celery_app beat --loglevel=info
-```
-
-**Step 7: Verify Installation**
-- 🌐 Open http://localhost:5000 in your browser
-- 📤 Try uploading a small audio file
-- 📊 Check processing status updates
-- 📄 Download transcript when complete
-
-## ⚙️ Configuration
+<details>
+<summary>Complete configuration reference</summary>
 
 ### Environment Variables Reference
 
-Create a `.env` file in the project root with these variables:
-
 ```bash
 # ===== REQUIRED SETTINGS =====
-# Yandex SpeechKit API Credentials (REQUIRED)
-# Получите в консоли Yandex Cloud: https://console.cloud.yandex.com
-YANDEX_API_KEY=AQVNxxxxxxxxxxxxxxxxxxxxxxx  # Ваш API ключ из сервисного аккаунта
-YANDEX_FOLDER_ID=b1gxxxxxxxxxxxxxxxxx      # ID каталога из консоли Yandex Cloud
+YANDEX_API_KEY=AQVNxxxxxxxxxxxxxxxxxxxxxxx  # API key from Yandex Cloud
+YANDEX_FOLDER_ID=b1gxxxxxxxxxxxxxxxxx      # Folder ID from Yandex Cloud
 
 # ===== APPLICATION SETTINGS =====
-# Flask Configuration
 FLASK_ENV=development                    # development/production/testing
-SECRET_KEY=your-secret-key-here         # Generate with: python -c "import secrets; print(secrets.token_hex(16))"
-FLASK_APP=backend/app.py
-
-# Database Configuration
+SECRET_KEY=your-secret-key-here         # Generate: python -c "import secrets; print(secrets.token_hex(16))"
 DATABASE_URL=sqlite:///transcriber.db    # SQLite for development
-# DATABASE_URL=postgresql://user:pass@localhost:5432/transcriber  # PostgreSQL for production
-
-# Redis Configuration (for Celery task queue)
-REDIS_URL=redis://localhost:6379/0      # Local Redis
-# REDIS_URL=redis://redis:6379/0         # Docker Redis
+REDIS_URL=redis://localhost:6379/0      # Redis connection
 
 # ===== PROCESSING SETTINGS =====
-# File Upload Limits
-MAX_CONTENT_LENGTH=524288000            # 500MB in bytes
+MAX_CONTENT_LENGTH=524288000            # 500MB file limit
 UPLOAD_FOLDER=uploads/                  # Upload directory
-
-# Audio Processing
-FFMPEG_PATH=/usr/bin/ffmpeg             # Path to FFmpeg binary
-MAX_AUDIO_DURATION=14400                # 4 hours in seconds
-AUDIO_PROCESSING_TIMEOUT=3600           # 1 hour timeout
+MAX_AUDIO_DURATION=14400                # 4 hours max duration
+FFMPEG_PATH=/usr/bin/ffmpeg             # FFmpeg path
 
 # ===== CELERY SETTINGS =====
-# Task Queue Configuration
 CELERY_BROKER_URL=redis://localhost:6379/0
 CELERY_RESULT_BACKEND=redis://localhost:6379/1
-CELERY_TASK_SERIALIZER=json
-CELERY_RESULT_SERIALIZER=json
 
-# ===== OPTIONAL SETTINGS =====
-# Logging
+# ===== LOGGING =====
 LOG_LEVEL=INFO                          # DEBUG/INFO/WARNING/ERROR
-LOG_FILE=logs/app.log
-
-# Development Tools
-FLASK_DEBUG=1                           # Enable debug mode (development only)
+FLASK_DEBUG=1                           # Debug mode (development)
 ```
 
-### 🔧 Configuration Validation
-
-**Проверка подключения к Yandex SpeechKit:**
+### Validation Commands
 
 ```bash
-# Запустите тестовый скрипт для проверки подключения
-python test_yandex_connection.py
-
-# Или проверьте вручную:
+# Test Yandex API connection
 python -c "
-import os
-import requests
-
-api_key = os.getenv('YANDEX_API_KEY')
-folder_id = os.getenv('YANDEX_FOLDER_ID')
-
-if not api_key or not folder_id:
-    print('❌ Не настроены YANDEX_API_KEY или YANDEX_FOLDER_ID')
-    exit(1)
-
-response = requests.post(
-    'https://stt.api.cloud.yandex.net/speech/v1/stt:recognize',
-    headers={'Authorization': f'Api-Key {api_key}'},
-    data={'folderId': folder_id, 'format': 'lpcm', 'sampleRateHertz': '8000'},
-    timeout=10
-)
-
-if response.status_code in [200, 400]:  # 400 для пустых данных - это нормально
-    print('✅ Yandex SpeechKit API доступен!')
-else:
-    print(f'❌ Ошибка API: {response.status_code}')
+import os, requests
+key, folder = os.getenv('YANDEX_API_KEY'), os.getenv('YANDEX_FOLDER_ID')
+r = requests.post('https://stt.api.cloud.yandex.net/speech/v1/stt:recognize',
+    headers={'Authorization': f'Api-Key {key}'}, 
+    data={'folderId': folder, 'format': 'lpcm', 'sampleRateHertz': '8000'})
+print('✅ API works!' if r.status_code in [200,400] else f'❌ Error: {r.status_code}')
 "
 
-# Проверка других компонентов системы
-python backend/validate_config.py  # Если существует
-```
+# Test Redis connection
+redis-cli ping  # Should return PONG
 
-**Быстрая диагностика:**
-
-```bash
-# Проверка переменных окружения
-echo "API Key: ${YANDEX_API_KEY:0:10}..." 
+# Check environment variables
+echo "API Key: ${YANDEX_API_KEY:0:10}..."
 echo "Folder ID: $YANDEX_FOLDER_ID"
-
-# Проверка доступности внешних сервисов
-curl -s -o /dev/null -w "%{http_code}" https://stt.api.cloud.yandex.net/  # Должно быть 404
-redis-cli ping  # Должно вернуть PONG
 ```
+
+</details>
 
 ## Development Workflow
 
