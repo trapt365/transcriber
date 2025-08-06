@@ -29,8 +29,9 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Copy project files
 COPY . .
 
-# Create uploads directory, set permissions, and create non-root user
+# Create uploads directory, fix line endings, set permissions, and create non-root user
 RUN mkdir -p uploads \
+    && sed -i 's/\r$//' start_app.sh init_db.py \
     && chmod +x start_app.sh init_db.py \
     && groupadd -r appuser && useradd -r -g appuser appuser \
     && chown -R appuser:appuser /app
