@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}Transcript - {{ job.original_filename }} - Audio Transcriber{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/status.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/transcript.css') }}">
+{% endblock %}
+
+{% block body_class %}transcript-page{% endblock %}
+
+{% block content %}
+<div class="container-lg">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('jobs.job_status_page', job_id=job.job_id) }}">Status</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Transcript</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h1 class="h2 mb-2">
+                        <i class="bi bi-file-text me-2"></i>Transcript
+                    </h1>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-file-earmark-audio me-1"></i>
+                        {{ job.original_filename }}
+                        <span class="ms-2">
+                            <small class="badge bg-success">{{ job.status.title() }}</small>
+                        </span>
+                    </p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="copyTranscriptBtn" title="Copy transcript to clipboard">
+                        <i class="bi bi-clipboard"></i> Copy
+                    </button>
+                    <button type="button" class="btn btn-outline-success btn-sm" id="downloadTranscriptBtn" title="Download transcript" data-bs-toggle="modal" data-bs-target="#downloadModal">
+                        <i class="bi bi-download"></i> Download
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshTranscriptBtn" title="Refresh transcript">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="text-center py-5" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading transcript...</span>
+        </div>
+        <p class="text-muted mt-3">Loading transcript data...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" class="alert alert-danger" style="display: none;">
+        <h5 class="alert-heading">
+            <i class="bi bi-exclamation-triangle"></i> Error Loading Transcript
+        </h5>
+        <p id="errorMessage" class="mb-2"></p>
+        <button class="btn btn-outline-danger btn-sm" id="retryBtn">
+            <i class="bi bi-arrow-clockwise"></i> Retry
+        </button>
+    </div>
+
+    <!-- Main Content -->
+    <div id="transcriptContent" style="display: none;">
+        <!-- Transcript Overview -->
+        <div class="row mb-4">
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="bg-light p-3 rounded text-center">
+                    <div class="h4 text-primary mb-1" id="speakerCount">-</div>
+                    <small class="text-muted text-uppercase fw-bold">Speakers</small>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="bg-light p-3 rounded text-center">
+                    <div class="h4 text-success mb-1" id="segmentCount">-</div>
+                    <small class="text-muted text-uppercase fw-bold">Segments</small>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="bg-light p-3 rounded text-center">
+                    <div class="h4 text-info mb-1" id="totalDuration">-</div>
+                    <small class="text-muted text-uppercase fw-bold">Duration</small>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="bg-light p-3 rounded text-center">
+                    <div class="h4 text-warning mb-1" id="confidenceScore">-</div>
+                    <small class="text-muted text-uppercase fw-bold">Confidence</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Display Options -->
+        <div class="row mb-3">
+            <div class="col">
+                <div class="btn-group" role="group" aria-label="Display options">
+                    <input type="radio" class="btn-check" name="displayMode" id="fullTranscript" value="full" checked>
+                    <label class="btn btn-outline-primary" for="fullTranscript">
+                        <i class="bi bi-file-text"></i> Full Transcript
+                    </label>
+
+                    <input type="radio" class="btn-check" name="displayMode" id="segmentView" value="segments">
+                    <label class="btn btn-outline-primary" for="segmentView">
+                        <i class="bi bi-list-ul"></i> Segments
+                    </label>
+
+                    <input type="radio" class="btn-check" name="displayMode" id="speakerView" value="speakers">
+                    <label class="btn btn-outline-primary" for="speakerView">
+                        <i class="bi bi-people"></i> By Speaker
+                    </label>
+                </div>
+                
+                <div class="float-end">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="highlightSpeakers" checked>
+                        <label class="form-check-label" for="highlightSpeakers">
+                            Highlight Speakers
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Section -->
+        <div class="card mb-4" id="previewCard">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-eye"></i> Quick Preview
+                </h5>
+                <button class="btn btn-sm btn-outline-secondary" id="togglePreview">
+                    <i class="bi bi-chevron-up"></i>
+                </button>
+            </div>
+            <div class="card-body" id="previewBody">
+                <div class="transcript-preview" id="transcriptPreview">
+                    <!-- Preview text will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Transcript Display -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-text"></i> <span id="transcriptTitle">Full Transcript</span>
+                </h5>
+                <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted">Scroll to navigate</small>
+                    <button class="btn btn-sm btn-outline-secondary" id="searchBtn" title="Search transcript">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Search Box -->
+            <div class="card-body border-bottom" id="searchBox" style="display: none;">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search in transcript...">
+                    <button class="btn btn-outline-secondary" type="button" id="clearSearchBtn">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted" id="searchResults">Enter text to search</small>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <!-- Full Transcript View -->
+                <div id="fullTranscriptView" class="transcript-display">
+                    <div class="transcript-content" id="fullTranscriptContent">
+                        <!-- Full transcript will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Segments View -->
+                <div id="segmentsView" class="transcript-display" style="display: none;">
+                    <div class="segments-container" id="segmentsContainer">
+                        <!-- Segments will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Speaker View -->
+                <div id="speakersView" class="transcript-display" style="display: none;">
+                    <div class="speakers-container" id="speakersContainer">
+                        <!-- Speaker-organized content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transcript Validation Warnings -->
+        <div id="validationWarnings" class="mt-3" style="display: none;">
+            <div class="alert alert-warning">
+                <h6 class="alert-heading">
+                    <i class="bi bi-exclamation-triangle"></i> Transcript Quality Notices
+                </h6>
+                <ul id="warningsList" class="mb-0">
+                    <!-- Warnings will be populated here -->
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Download Format Selection Modal -->
+<div class="modal fade" id="downloadModal" tabindex="-1" aria-labelledby="downloadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="downloadModalLabel">
+                    <i class="bi bi-download me-2"></i>Download Transcript
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Choose a format for your transcript download:</p>
+                
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="card export-format-card" data-format="txt">
+                            <div class="card-body text-center">
+                                <i class="bi bi-file-text fs-1 text-primary mb-2"></i>
+                                <h6 class="card-title">Text (.txt)</h6>
+                                <small class="text-muted">Plain text with timestamps</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card export-format-card" data-format="json">
+                            <div class="card-body text-center">
+                                <i class="bi bi-file-code fs-1 text-info mb-2"></i>
+                                <h6 class="card-title">JSON (.json)</h6>
+                                <small class="text-muted">Structured data format</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card export-format-card" data-format="srt" id="srtFormat">
+                            <div class="card-body text-center">
+                                <i class="bi bi-file-earmark-play fs-1 text-warning mb-2"></i>
+                                <h6 class="card-title">Subtitles (.srt)</h6>
+                                <small class="text-muted">For video editing</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card export-format-card" data-format="vtt" id="vttFormat">
+                            <div class="card-body text-center">
+                                <i class="bi bi-file-earmark-play fs-1 text-success mb-2"></i>
+                                <h6 class="card-title">WebVTT (.vtt)</h6>
+                                <small class="text-muted">Web video captions</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="card export-format-card" data-format="csv">
+                            <div class="card-body text-center">
+                                <i class="bi bi-file-spreadsheet fs-1 text-danger mb-2"></i>
+                                <h6 class="card-title">CSV (.csv)</h6>
+                                <small class="text-muted">Spreadsheet format with segment data</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Format info alert -->
+                <div class="alert alert-info mt-3" id="formatInfo" style="display: none;">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <span id="formatInfoText"></span>
+                </div>
+                
+                <!-- Download progress -->
+                <div id="downloadProgress" class="mt-3" style="display: none;">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                            <span class="visually-hidden">Generating...</span>
+                        </div>
+                        <span>Generating your download...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmDownloadBtn" disabled>
+                    <i class="bi bi-download me-2"></i>Download
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Toast -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="successToast" class="toast" role="alert">
+        <div class="toast-header bg-success text-white">
+            <i class="bi bi-check-circle me-2"></i>
+            <strong class="me-auto">Success</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="successMessage">
+            <!-- Success message will be populated here -->
+        </div>
+    </div>
+</div>
+
+<!-- Hidden data for JavaScript -->
+<script type="application/json" id="jobData">
+{
+    "job_id": "{{ job.job_id }}",
+    "filename": "{{ job.original_filename }}",
+    "api_endpoint": "{{ url_for('jobs.get_job_transcript', job_id=job.job_id) }}"
+}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/transcript.js') }}"></script>
+{% endblock %}

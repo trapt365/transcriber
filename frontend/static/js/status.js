@@ -12,14 +12,22 @@ AudioTranscriber.status = {
         pollInterval: null,
         isPolling: false,
         lastUpdate: null,
-        refreshCount: 0
+        refreshCount: 0,
+        // WebSocket state
+        socket: null,
+        isConnected: false,
+        reconnectAttempts: 0,
+        retryTimeout: null,
+        usingWebSocket: false
     },
 
     // Configuration
     config: {
         pollIntervalMs: 3000, // 3 seconds
         maxPollAttempts: 200, // ~10 minutes max polling
-        refreshTimeout: 30000 // 30 seconds timeout for requests
+        refreshTimeout: 30000, // 30 seconds timeout for requests
+        useWebSocket: true, // Use WebSocket if available
+        maxReconnectAttempts: 5 // Max WebSocket reconnection attempts
     },
 
     // DOM elements cache
@@ -42,12 +50,25 @@ AudioTranscriber.status = {
         // Setup event listeners
         this.setupEventListeners();
         
-        // Start initial status check
-        this.updateStatus();
+        // Initialize download modal
+        this.initializeDownloadModal();
         
-        // Start polling if job is not completed
-        if (this.shouldPoll(this.state.currentStatus)) {
-            this.startPolling();
+        // Load stored status first
+        this.loadStoredStatus();
+
+        // Initialize WebSocket or fallback to polling
+        if (this.config.useWebSocket && this.initializeWebSocket()) {
+            console.log('Using WebSocket for real-time updates');
+            this.state.usingWebSocket = true;
+        } else {
+            console.log('Falling back to polling');
+            // Start initial status check
+            this.updateStatus();
+            
+            // Start polling if job is not completed
+            if (this.shouldPoll(this.state.currentStatus)) {
+                this.startPolling();
+            }
         }
     },
 
@@ -128,12 +149,22 @@ AudioTranscriber.status = {
 
         // Auto-refresh when page becomes visible
         document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && this.shouldPoll(this.state.currentStatus)) {
-                this.updateStatus();
-                if (!this.state.isPolling) {
-                    this.startPolling();
+            if (!document.hidden) {
+                if (this.state.usingWebSocket && !this.state.isConnected) {
+                    // Try to reconnect WebSocket
+                    this.scheduleReconnect();
+                } else if (!this.state.usingWebSocket && this.shouldPoll(this.state.currentStatus)) {
+                    this.updateStatus();
+                    if (!this.state.isPolling) {
+                        this.startPolling();
+                    }
                 }
             }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            this.cleanup();
         });
     },
 
@@ -388,6 +419,9 @@ AudioTranscriber.status = {
     displayResults: function(result) {
         console.log('Displaying results:', result);
         
+        // Store current job data for export functionality
+        this.currentJobData = { result: result };
+        
         // Update statistics
         if (this.elements.confidenceScore) {
             this.elements.confidenceScore.textContent = result.confidence_score 
@@ -590,30 +624,142 @@ AudioTranscriber.status = {
     },
 
     /**
-     * Download transcript as text file
+     * Initialize download modal functionality
+     */
+    initializeDownloadModal: function() {
+        const modal = document.getElementById('downloadModal');
+        const formatCards = modal.querySelectorAll('.export-format-card');
+        const confirmBtn = document.getElementById('confirmDownloadBtn');
+        const formatInfo = document.getElementById('formatInfo');
+        const formatInfoText = document.getElementById('formatInfoText');
+        let selectedFormat = null;
+
+        // Format information
+        const formatDescriptions = {
+            txt: 'Plain text file with speaker labels and timestamps. Best for general reading and editing.',
+            json: 'Structured data format containing all metadata, speakers, segments, and timing information.',
+            srt: 'Standard subtitle format for video editing. Requires segment timing data.',
+            vtt: 'Web Video Text Tracks format for web players. Requires segment timing data.',
+            csv: 'Spreadsheet format with segment-by-segment data. Great for analysis and data processing.'
+        };
+
+        // Handle format selection
+        formatCards.forEach(card => {
+            card.addEventListener('click', () => {
+                // Check if format is disabled
+                if (card.classList.contains('disabled')) {
+                    return;
+                }
+
+                // Remove previous selection
+                formatCards.forEach(c => c.classList.remove('selected'));
+                
+                // Select current format
+                card.classList.add('selected');
+                selectedFormat = card.dataset.format;
+                
+                // Update format info
+                formatInfoText.textContent = formatDescriptions[selectedFormat];
+                formatInfo.style.display = 'block';
+                
+                // Enable confirm button
+                confirmBtn.disabled = false;
+            });
+        });
+
+        // Handle confirm download
+        confirmBtn.addEventListener('click', () => {
+            if (selectedFormat) {
+                this.downloadInFormat(selectedFormat);
+            }
+        });
+
+        // Reset modal when opened
+        modal.addEventListener('show.bs.modal', () => {
+            this.checkExportAvailability();
+            // Reset selection
+            formatCards.forEach(c => c.classList.remove('selected'));
+            selectedFormat = null;
+            confirmBtn.disabled = true;
+            formatInfo.style.display = 'none';
+        });
+    },
+
+    /**
+     * Check export format availability
+     */
+    checkExportAvailability: function() {
+        // Check if we have segments for timed formats
+        const hasSegments = this.currentJobData?.result?.segments?.length > 0;
+        
+        const srtFormat = document.getElementById('srtFormat');
+        const vttFormat = document.getElementById('vttFormat');
+        
+        if (!hasSegments) {
+            srtFormat?.classList.add('disabled');
+            vttFormat?.classList.add('disabled');
+        } else {
+            srtFormat?.classList.remove('disabled');
+            vttFormat?.classList.remove('disabled');
+        }
+    },
+
+    /**
+     * Download transcript in specified format
+     */
+    downloadInFormat: function(format) {
+        const downloadProgress = document.getElementById('downloadProgress');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('downloadModal'));
+        
+        // Show progress
+        downloadProgress.style.display = 'block';
+        
+        // Make API request to export endpoint
+        const exportUrl = `/api/v1/jobs/${this.state.jobId}/export/${format}`;
+        
+        fetch(exportUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Export failed: ${response.status} ${response.statusText}`);
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                // Create download link
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                
+                // Get filename from response header or generate one
+                const filename = `transcript_${this.state.jobId}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.${format}`;
+                
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                URL.revokeObjectURL(url);
+                
+                // Hide progress and close modal
+                downloadProgress.style.display = 'none';
+                modal.hide();
+                
+                AudioTranscriber.utils.showToast(`Transcript downloaded as ${format.toUpperCase()}`, 'success', 3000);
+            })
+            .catch(error => {
+                console.error('Download error:', error);
+                downloadProgress.style.display = 'none';
+                AudioTranscriber.utils.showToast(`Download failed: ${error.message}`, 'error', 5000);
+            });
+    },
+
+    /**
+     * Legacy download function for backward compatibility
      */
     downloadTranscript: function() {
-        const transcript = this.elements.transcriptText?.textContent;
-        const filename = this.elements.fileName?.textContent || 'transcript';
-        
-        if (!transcript) {
-            AudioTranscriber.utils.showToast('No transcript available to download', 'warning', 3000);
-            return;
-        }
-        
-        const blob = new Blob([transcript], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${filename.replace(/\.[^/.]+$/, '')}_transcript.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        URL.revokeObjectURL(url);
-        
-        AudioTranscriber.utils.showToast('Transcript downloaded', 'success', 2000);
+        // Open download modal instead of direct download
+        const modal = new bootstrap.Modal(document.getElementById('downloadModal'));
+        modal.show();
     },
 
     /**
@@ -699,6 +845,333 @@ AudioTranscriber.status = {
             'info',
             8000
         );
+    },
+
+    /**
+     * Initialize WebSocket connection
+     * @returns {boolean} True if WebSocket was successfully initialized
+     */
+    initializeWebSocket: function() {
+        try {
+            // Check if io (Socket.IO) is available
+            if (typeof io === 'undefined') {
+                console.log('Socket.IO not available, falling back to polling');
+                return false;
+            }
+
+            // Initialize Socket.IO connection
+            this.state.socket = io();
+            
+            this.state.socket.on('connect', () => {
+                console.log('WebSocket connected');
+                this.state.isConnected = true;
+                this.state.reconnectAttempts = 0;
+                this.updateConnectionStatus(true);
+                this.subscribeToJobStatus();
+            });
+            
+            this.state.socket.on('disconnect', () => {
+                console.log('WebSocket disconnected');
+                this.state.isConnected = false;
+                this.updateConnectionStatus(false);
+                this.scheduleReconnect();
+            });
+            
+            this.state.socket.on('job_status_update', (data) => {
+                console.log('Real-time status update received:', data);
+                this.handleWebSocketStatusUpdate(data);
+            });
+            
+            this.state.socket.on('queue_position_update', (data) => {
+                console.log('Queue position update:', data);
+                this.handleQueueUpdate(data);
+            });
+            
+            this.state.socket.on('processing_error', (data) => {
+                console.log('Processing error:', data);
+                this.handleProcessingError(data);
+            });
+            
+            this.state.socket.on('error', (error) => {
+                console.error('WebSocket error:', error);
+                this.handleConnectionError(error);
+            });
+            
+            return true;
+            
+        } catch (error) {
+            console.error('Failed to initialize WebSocket:', error);
+            return false;
+        }
+    },
+
+    /**
+     * Subscribe to job status updates via WebSocket
+     */
+    subscribeToJobStatus: function() {
+        if (this.state.socket && this.state.isConnected && this.state.jobId) {
+            this.state.socket.emit('subscribe_job_status', { job_id: this.state.jobId });
+        }
+    },
+
+    /**
+     * Schedule WebSocket reconnection
+     */
+    scheduleReconnect: function() {
+        if (this.state.reconnectAttempts < this.config.maxReconnectAttempts) {
+            this.state.reconnectAttempts++;
+            const delay = 1000 * Math.pow(2, this.state.reconnectAttempts - 1); // Exponential backoff
+            
+            console.log(`Scheduling WebSocket reconnect attempt ${this.state.reconnectAttempts} in ${delay}ms`);
+            
+            this.state.retryTimeout = setTimeout(() => {
+                if (this.state.socket) {
+                    this.state.socket.connect();
+                }
+            }, delay);
+        } else {
+            console.log('Max WebSocket reconnect attempts reached, falling back to polling');
+            this.fallbackToPolling();
+        }
+    },
+
+    /**
+     * Fallback to polling when WebSocket fails
+     */
+    fallbackToPolling: function() {
+        console.log('Switching to polling mode');
+        this.state.usingWebSocket = false;
+        this.updateConnectionStatus('polling');
+        
+        // Disconnect WebSocket if still connected
+        if (this.state.socket) {
+            this.state.socket.disconnect();
+        }
+        
+        // Start polling
+        this.updateStatus();
+        if (this.shouldPoll(this.state.currentStatus)) {
+            this.startPolling();
+        }
+    },
+
+    /**
+     * Handle WebSocket status update
+     * @param {object} data - Status update data
+     */
+    handleWebSocketStatusUpdate: function(data) {
+        if (data.job_id !== this.state.jobId) {
+            return; // Ignore updates for other jobs
+        }
+
+        // Store in local storage
+        this.storeStatus(data);
+
+        // Convert WebSocket data format to match polling format
+        const jobData = {
+            status: data.status,
+            progress: data.progress || 0,
+            processing_phase: data.processing_phase,
+            estimated_completion: data.estimated_completion,
+            queue_position: data.queue_position,
+            can_cancel: data.can_cancel,
+            error_message: data.error_message
+        };
+
+        this.handleStatusUpdate(jobData);
+    },
+
+    /**
+     * Handle queue position update
+     * @param {object} data - Queue update data
+     */
+    handleQueueUpdate: function(data) {
+        if (data.job_id !== this.state.jobId) {
+            return;
+        }
+
+        // Update queue position display
+        this.updateQueuePosition(data.queue_position, data.estimated_wait_seconds);
+    },
+
+    /**
+     * Handle processing error
+     * @param {object} data - Error data
+     */
+    handleProcessingError: function(data) {
+        if (data.job_id !== this.state.jobId) {
+            return;
+        }
+
+        this.showProcessingError(data.error_message, data.suggested_actions);
+    },
+
+    /**
+     * Handle connection error
+     * @param {object} error - Error data
+     */
+    handleConnectionError: function(error) {
+        console.error('WebSocket connection error:', error);
+        AudioTranscriber.utils.showToast('Connection error. Attempting to reconnect...', 'warning', 3000);
+    },
+
+    /**
+     * Update connection status display
+     * @param {boolean|string} status - Connection status
+     */
+    updateConnectionStatus: function(status) {
+        let indicator = document.getElementById('connection-status');
+        
+        if (!indicator) {
+            // Create connection status indicator
+            indicator = document.createElement('div');
+            indicator.id = 'connection-status';
+            indicator.className = 'connection-status';
+            
+            // Insert into status page
+            const statusContainer = document.querySelector('.job-status-container');
+            if (statusContainer) {
+                statusContainer.insertBefore(indicator, statusContainer.firstChild);
+            }
+        }
+
+        if (status === true) {
+            indicator.textContent = '🟢 Connected';
+            indicator.className = 'connection-status connected';
+        } else if (status === 'polling') {
+            indicator.textContent = '🔄 Polling';
+            indicator.className = 'connection-status polling';
+        } else {
+            indicator.textContent = '🔴 Disconnected';
+            indicator.className = 'connection-status disconnected';
+        }
+    },
+
+    /**
+     * Update queue position display
+     * @param {number} position - Queue position
+     * @param {number} estimatedWait - Estimated wait time in seconds
+     */
+    updateQueuePosition: function(position, estimatedWait) {
+        let queueElement = document.getElementById('queue-position');
+        
+        if (!queueElement) {
+            // Create queue position element
+            queueElement = document.createElement('div');
+            queueElement.id = 'queue-position';
+            queueElement.className = 'queue-position alert alert-info';
+            
+            // Insert into processing section
+            const processingSection = this.elements.processingSection;
+            if (processingSection) {
+                processingSection.appendChild(queueElement);
+            }
+        }
+
+        if (position > 1) {
+            let message = `Position in queue: ${position}`;
+            
+            if (estimatedWait) {
+                const waitTime = AudioTranscriber.utils.formatDuration(estimatedWait);
+                message += ` • Estimated wait: ${waitTime}`;
+            }
+            
+            queueElement.textContent = message;
+            queueElement.style.display = 'block';
+        } else {
+            queueElement.style.display = 'none';
+        }
+    },
+
+    /**
+     * Show processing error with suggested actions
+     * @param {string} message - Error message
+     * @param {Array} suggestedActions - Suggested actions
+     */
+    showProcessingError: function(message, suggestedActions = []) {
+        // Show main error
+        if (this.elements.errorMessage) {
+            this.elements.errorMessage.textContent = message;
+        }
+        
+        // Show suggested actions if available
+        if (suggestedActions.length > 0) {
+            let actionsElement = document.getElementById('suggested-actions');
+            
+            if (!actionsElement) {
+                actionsElement = document.createElement('div');
+                actionsElement.id = 'suggested-actions';
+                actionsElement.className = 'suggested-actions mt-3';
+                
+                if (this.elements.errorSection) {
+                    this.elements.errorSection.appendChild(actionsElement);
+                }
+            }
+            
+            const actionsList = suggestedActions.map(action => `<li>${action}</li>`).join('');
+            actionsElement.innerHTML = `
+                <h5>Suggested Actions:</h5>
+                <ul>${actionsList}</ul>
+            `;
+            actionsElement.style.display = 'block';
+        }
+        
+        AudioTranscriber.utils.showToast('Processing error: ' + message, 'error', 5000);
+    },
+
+    /**
+     * Store status in local storage
+     * @param {object} data - Status data
+     */
+    storeStatus: function(data) {
+        try {
+            localStorage.setItem(`job_status_${this.state.jobId}`, JSON.stringify({
+                ...data,
+                timestamp: Date.now()
+            }));
+        } catch (error) {
+            console.error('Error storing status:', error);
+        }
+    },
+
+    /**
+     * Load stored status from local storage
+     */
+    loadStoredStatus: function() {
+        try {
+            const stored = localStorage.getItem(`job_status_${this.state.jobId}`);
+            if (stored) {
+                const data = JSON.parse(stored);
+                // Only use if less than 30 seconds old
+                if (Date.now() - data.timestamp < 30000) {
+                    console.log('Loading stored status:', data);
+                    this.handleWebSocketStatusUpdate(data);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading stored status:', error);
+        }
+    },
+
+    /**
+     * Cleanup WebSocket connection
+     */
+    cleanup: function() {
+        // Clear timeouts
+        if (this.state.retryTimeout) {
+            clearTimeout(this.state.retryTimeout);
+        }
+        
+        // Disconnect WebSocket
+        if (this.state.socket) {
+            if (this.state.isConnected) {
+                this.state.socket.emit('unsubscribe_job_status', { job_id: this.state.jobId });
+            }
+            this.state.socket.disconnect();
+        }
+        
+        // Stop polling
+        this.stopPolling();
     }
 };
 
