@@ -8,7 +8,7 @@ from backend.celery_app import celery_app
 from backend.app.models.job import Job
 from backend.app.models.result import JobResult
 from backend.app.models.enums import JobStatus
-from backend.app.models.usage import UsageRecord
+from backend.app.models.usage import UsageStats
 from backend.extensions import db
 
 logger = logging.getLogger(__name__)
@@ -109,18 +109,12 @@ def update_processing_metrics() -> Dict[str, Any]:
         
         # Create or update usage record
         today = datetime.utcnow().date()
-        usage_record = UsageRecord.query.filter(UsageRecord.date == today).first()
-        
-        if not usage_record:
-            usage_record = UsageRecord(date=today)
-            db.session.add(usage_record)
+        usage_record = UsageStats.get_or_create_daily(today)
         
         # Update usage statistics
-        usage_record.total_jobs = total_jobs
-        usage_record.completed_jobs = completed_jobs
+        usage_record.successful_jobs = completed_jobs
         usage_record.failed_jobs = failed_jobs
-        usage_record.success_rate = success_rate
-        usage_record.average_processing_time = avg_processing_time
+        usage_record.avg_processing_time = avg_processing_time
         
         db.session.commit()
         
