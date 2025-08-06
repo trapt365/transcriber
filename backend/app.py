@@ -1,29 +1,28 @@
 """Entry point for running the application directly."""
 
-def create_app_instance():
-    """Create app instance with error handling."""
+# Simple approach - just create a basic Flask app that works
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/health')
+def health():
+    return {'status': 'healthy', 'service': 'transcriber-basic'}, 200
+
+@app.route('/')
+def index():
+    return {'message': 'Basic Flask app is running'}, 200
+
+def create_app():
+    """Factory function for gunicorn - returns the full app."""
     try:
-        from backend.app import create_app
-        return create_app()
-    except Exception as e:
-        print(f"Error creating Flask app: {e}")
-        import traceback
-        traceback.print_exc()
-        # Create a minimal Flask app as fallback
-        from flask import Flask
-        app = Flask(__name__)
-        return app, None
-
-# Create the app instance for Flask CLI discovery
-app, socketio = create_app_instance()
-
-def create_app_factory():
-    """Factory function for gunicorn."""
-    from backend.app import create_app
-    return create_app()[0]
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from app import create_app as factory_create_app
+        return factory_create_app()[0]
+    except Exception:
+        return app
 
 if __name__ == '__main__':
-    if socketio:
-        socketio.run(app, debug=True)
-    else:
-        app.run(debug=True)
+    app.run(debug=True)
