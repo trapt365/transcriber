@@ -3,7 +3,7 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    FLASK_APP=backend.app:app \
+    FLASK_APP=backend/app.py \
     FLASK_ENV=development \
     GRPC_PYTHON_BUILD_WITH_CYTHON=1 \
     GRPC_PYTHON_DISABLE_LIBC_COMPATIBILITY=1 \
