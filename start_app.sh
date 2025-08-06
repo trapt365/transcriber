@@ -1,5 +1,5 @@
 #!/bin/bash
-"""Startup script that initializes database and starts Flask app."""
+# Startup script that initializes database and starts Flask app.
 
 echo "🚀 Starting transcriber application..."
 

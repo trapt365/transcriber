@@ -16,7 +16,7 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
-    command: ./start_app.sh
+    command: /bin/bash /app/start_app.sh
 
   redis:
     image: redis:7-alpine
