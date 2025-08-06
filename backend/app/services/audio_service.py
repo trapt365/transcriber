@@ -13,7 +13,7 @@ from backend.config import get_config
 from backend.app.utils.exceptions import ProcessingError
 
 logger = logging.getLogger(__name__)
-config = get_config()
+config_class = get_config()
 
 
 class AudioService:
@@ -26,7 +26,7 @@ class AudioService:
         Args:
             ffmpeg_path: Path to FFmpeg executable
         """
-        self.ffmpeg_path = ffmpeg_path or config.FFMPEG_PATH
+        self.ffmpeg_path = ffmpeg_path or config_class.FFMPEG_PATH
         self._validate_ffmpeg()
     
     def _validate_ffmpeg(self) -> None:
@@ -141,7 +141,7 @@ class AudioService:
             ProcessingError: If validation fails
         """
         # Check duration
-        max_duration = config.MAX_AUDIO_DURATION
+        max_duration = config_class.MAX_AUDIO_DURATION
         if metadata['duration'] > max_duration:
             raise ProcessingError(
                 f"Audio duration ({metadata['duration']:.1f}s) exceeds maximum "
@@ -238,7 +238,7 @@ class AudioService:
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=config.AUDIO_PROCESSING_TIMEOUT
+                timeout=config_class.AUDIO_PROCESSING_TIMEOUT
             )
             
             if result.returncode != 0:
@@ -297,7 +297,7 @@ class AudioService:
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=config.AUDIO_PROCESSING_TIMEOUT
+                timeout=config_class.AUDIO_PROCESSING_TIMEOUT
             )
             
             if result.returncode != 0:
