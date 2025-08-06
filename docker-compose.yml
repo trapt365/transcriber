@@ -7,14 +7,15 @@ services:
       - "5000:5000"
     environment:
       - FLASK_ENV=development
-      - FLASK_APP=backend/app.py
+      - FLASK_APP=backend.app:app
       - REDIS_URL=redis://redis:6379/0
       - DATABASE_URL=sqlite:///app.db
     volumes:
       - .:/app
       - uploads:/app/uploads
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     command: python -m flask run --host=0.0.0.0 --port=5000 --debug
 
@@ -26,6 +27,11 @@ services:
       - redis_data:/data
     command: redis-server --appendonly yes
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   celery:
     build: .
@@ -38,8 +44,10 @@ services:
       - .:/app
       - uploads:/app/uploads
     depends_on:
-      - redis
-      - app
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_started
     restart: unless-stopped
 
   celery-beat:
@@ -52,8 +60,10 @@ services:
     volumes:
       - .:/app
     depends_on:
-      - redis
-      - app
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_started
     restart: unless-stopped
 
 volumes:
