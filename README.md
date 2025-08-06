@@ -152,9 +152,14 @@ docker-compose -f docker-compose.dev.yml up --build
 ```bash
 # Ubuntu/Debian
 sudo apt update
-sudo apt install python3.11 python3.11-venv python3.11-dev
+sudo apt install python3 python3-venv python3-dev
 sudo apt install ffmpeg redis-server
 sudo apt install build-essential pkg-config
+
+# For older Ubuntu versions, you may need the deadsnakes PPA:
+# sudo add-apt-repository ppa:deadsnakes/ppa
+# sudo apt update
+# sudo apt install python3.11 python3.11-venv python3.11-dev
 
 # macOS (using Homebrew)
 brew install python@3.11 ffmpeg redis
@@ -173,7 +178,7 @@ git clone https://github.com/trapt365/transcriber.git
 cd transcriber
 
 # 2. Create and activate virtual environment
-python3.11 -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # Linux/macOS
 # On Windows: venv\Scripts\activate
 
@@ -266,12 +271,19 @@ print('✅ API works!' if r.status_code in [200,400] else f'❌ Error: {r.status
 
 **❌ Python 3.11 not available:**
 ```bash
-# Ubuntu/Debian - add deadsnakes PPA
+# Check current Python version
+python3 --version
+
+# Debian 12/Ubuntu 22.04+ should have Python 3.11+ by default
+sudo apt install python3 python3-venv python3-dev
+
+# For older Ubuntu versions (20.04/18.04) - add deadsnakes PPA
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt update
 sudo apt install python3.11 python3.11-venv python3.11-dev
+# Then use python3.11 instead of python3 in commands
 
-# macOS - use pyenv
+# macOS - use pyenv for version management
 brew install pyenv
 pyenv install 3.11.7
 pyenv local 3.11.7
