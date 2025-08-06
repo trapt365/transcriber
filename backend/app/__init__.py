@@ -87,4 +87,13 @@ def create_app():
         from flask import redirect, url_for
         return redirect(url_for('upload.upload_page'))
     
+    # Initialize database tables on first request
+    @app.before_first_request
+    def create_tables():
+        try:
+            db.create_all()
+            app.logger.info("Database tables created successfully")
+        except Exception as e:
+            app.logger.error(f"Failed to create database tables: {e}")
+    
     return app, socketio

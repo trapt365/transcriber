@@ -16,7 +16,7 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
-    command: /bin/bash /app/start_app.sh
+    command: python -m flask run --host=0.0.0.0 --port=5000 --debug
 
   redis:
     image: redis:7-alpine
