@@ -65,9 +65,12 @@ def upload_file():
             max_file_size=current_app.config.get('MAX_FILE_SIZE', 500 * 1024 * 1024)
         )
         
-        # Validate and save file
+        # Use existing save_file method (includes validation)
         try:
-            file_info = file_service.validate_and_save_upload(file)
+            file_info = file_service.save_file(file, file.filename)
+            # Add format field for compatibility
+            if 'audio_format' in file_info:
+                file_info['format'] = file_info['audio_format'].value
         except FileValidationError as e:
             return jsonify({
                 'success': False,
