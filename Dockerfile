@@ -31,6 +31,7 @@ COPY . .
 
 # Create uploads directory and non-root user
 RUN mkdir -p uploads \
+    && chmod +x start_app.sh \
     && groupadd -r appuser && useradd -r -g appuser appuser \
     && chown -R appuser:appuser /app
 USER appuser
