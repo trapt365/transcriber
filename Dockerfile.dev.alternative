@@ -1,0 +1,64 @@
+# Alternative Dockerfile using ubuntu base for better gRPC compatibility
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    FLASK_APP=backend/app.py \
+    FLASK_ENV=development \
+    GRPC_PYTHON_BUILD_WITH_CYTHON=1
+
+# Set work directory
+WORKDIR /app
+
+# Install system dependencies including Python 3.11
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        software-properties-common \
+        curl \
+        gpg-agent \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        python3.11 \
+        python3.11-dev \
+        python3.11-distutils \
+        python3-pip \
+        gcc \
+        g++ \
+        make \
+        cmake \
+        build-essential \
+        pkg-config \
+        libffi-dev \
+        libssl-dev \
+        ffmpeg \
+        libsndfile1 \
+        git \
+        cython3 \
+    && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create symlink for python
+RUN ln -s /usr/bin/python3.11 /usr/local/bin/python \
+    && ln -s /usr/bin/python3.11 /usr/local/bin/python3
+
+# Copy requirements first for better caching
+COPY requirements.txt requirements-dev.txt ./
+
+# Install Python dependencies - try precompiled wheels first
+RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && python -m pip install --no-cache-dir --prefer-binary grpcio==1.59.0 grpcio-tools==1.59.0 \
+    && python -m pip install --no-cache-dir --prefer-binary -r requirements-dev.txt
+
+# Copy project files
+COPY . .
+
+# Expose port
+EXPOSE 5000
+
+# Run application in development mode
+CMD ["python", "-m", "flask", "run", "--host=0.0.0.0", "--port=5000", "--debug"]

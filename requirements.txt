@@ -22,6 +22,10 @@ speechkit==2.2.0
 # Explicit protobuf version for compatibility
 protobuf>=3.19.6,<4.0.0
 
+# gRPC dependencies - using specific stable versions to avoid compilation issues
+grpcio==1.59.0
+grpcio-tools==1.59.0
+
 # HTTP Client
 requests==2.31.0
 

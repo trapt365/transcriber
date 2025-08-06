@@ -4,7 +4,10 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     FLASK_APP=backend/app.py \
-    FLASK_ENV=development
+    FLASK_ENV=development \
+    GRPC_PYTHON_BUILD_WITH_CYTHON=1 \
+    GRPC_PYTHON_DISABLE_LIBC_COMPATIBILITY=1 \
+    PIP_NO_BUILD_ISOLATION=1
 
 # Set work directory
 WORKDIR /app
@@ -24,14 +27,18 @@ RUN apt-get update \
         libsndfile1 \
         curl \
         git \
+        python3-dev \
+        libc6-dev \
+        cython3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
 COPY requirements.txt requirements-dev.txt ./
 
-# Install Python dependencies (including dev dependencies)
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir wheel setuptools \
+# Install Python dependencies in stages to handle grpcio compilation
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel cython \
+    && pip install --no-cache-dir --prefer-binary --only-binary=grpcio,grpcio-tools grpcio grpcio-tools || \
+       pip install --no-cache-dir grpcio grpcio-tools \
     && pip install --no-cache-dir --prefer-binary -r requirements-dev.txt
 
 # Copy project files
