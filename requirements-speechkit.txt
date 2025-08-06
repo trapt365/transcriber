@@ -1,0 +1,5 @@
+# Yandex SpeechKit SDK and its dependencies
+# Install separately after main container is running
+# Usage: pip install -r requirements-speechkit.txt
+
+speechkit==2.2.0

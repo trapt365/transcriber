@@ -2,13 +2,12 @@ version: '3.8'
 
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev.alternative
+    build: .
     ports:
       - "5000:5000"
     environment:
       - FLASK_ENV=development
+      - FLASK_APP=backend/app.py
       - REDIS_URL=redis://redis:6379/0
       - DATABASE_URL=sqlite:///app.db
     volumes:
@@ -17,6 +16,7 @@ services:
     depends_on:
       - redis
     restart: unless-stopped
+    command: python -m flask run --host=0.0.0.0 --port=5000 --debug
 
   redis:
     image: redis:7-alpine

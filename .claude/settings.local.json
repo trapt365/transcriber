@@ -11,7 +11,9 @@
       "Bash(git push:*)",
       "Bash(find:*)",
       "Bash(true)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git reset:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": []
   }

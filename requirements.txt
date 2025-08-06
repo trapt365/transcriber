@@ -16,8 +16,8 @@ pydub==0.25.1
 librosa==0.10.1
 numpy==1.24.3
 
-# Yandex SpeechKit SDK
-speechkit==2.2.0
+# Yandex SpeechKit SDK - temporarily disabled due to grpcio-tools compilation issues
+# speechkit==2.2.0
 
 # Explicit protobuf version for compatibility (required by speechkit)
 protobuf==3.19.6
