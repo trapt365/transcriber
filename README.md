@@ -94,10 +94,12 @@ Before starting, ensure you have the following installed:
 **Quick Setup:**
 1. Create Yandex Cloud account: [console.cloud.yandex.com](https://console.cloud.yandex.com)
 2. Activate trial period (4000₽ for 60 days)
-3. Create cloud → folder → service account
-4. Enable SpeechKit service
-5. Create API key for service account
+3. **Create cloud** → **Create folder** (важно: сохраните Folder ID!)
+4. **Enable SpeechKit** service in the folder
+5. **Create service account** → **Generate API key**
 6. Add credentials to `.env` file:
+
+**💡 Где взять Folder ID:** После создания каталога, ID показан в URL: `console.cloud.yandex.com/folders/YOUR_FOLDER_ID`
 
 ```bash
 YANDEX_API_KEY=AQVNxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
