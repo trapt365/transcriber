@@ -122,7 +122,7 @@ print('✅ API works!' if r.status_code in [200,400] else f'❌ Error: {r.status
 
 ## 🚀 Installation
 
-### Docker Setup (Recommended for Epic 1 Testing)
+### Option 1: Docker Setup (Recommended)
 
 ```bash
 # 1. Clone and setup
@@ -141,39 +141,205 @@ docker-compose -f docker-compose.dev.yml up --build
 # Logs: docker-compose logs -f
 ```
 
-### Alternative: Local Development
+### Option 2: Native Installation (Docker Alternative)
 
-<details>
-<summary>Click to expand local development setup</summary>
+**If Docker is causing issues, use this native installation approach:**
+
+#### Step 1: System Requirements & Dependencies
+
+**Install Python 3.11+ and system dependencies:**
 
 ```bash
-# 1. Setup environment
+# Ubuntu/Debian
+sudo apt update
+sudo apt install python3.11 python3.11-venv python3.11-dev
+sudo apt install ffmpeg redis-server
+sudo apt install build-essential pkg-config
+
+# macOS (using Homebrew)
+brew install python@3.11 ffmpeg redis
+brew services start redis
+
+# Start Redis service on Ubuntu/Debian
+sudo systemctl start redis-server
+sudo systemctl enable redis-server
+```
+
+#### Step 2: Python Environment Setup
+
+```bash
+# 1. Clone repository
 git clone https://github.com/trapt365/transcriber.git
 cd transcriber
-python3 -m venv venv
+
+# 2. Create and activate virtual environment
+python3.11 -m venv venv
 source venv/bin/activate  # Linux/macOS
+# On Windows: venv\Scripts\activate
+
+# 3. Upgrade pip and install dependencies
+pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+
+# 4. Install additional development tools (optional)
 pip install -r requirements-dev.txt
+```
 
-# 2. Configure environment
+#### Step 3: Configuration
+
+```bash
+# 1. Copy environment file
 cp .env.example .env
-# Edit .env with your Yandex credentials
 
-# 3. Start Redis (Docker recommended)
-docker run -d --name redis -p 6379:6379 redis:7-alpine
+# 2. Edit .env file with your Yandex credentials
+nano .env  # or use any text editor
 
-# 4. Initialize database
+# Required settings in .env:
+# YANDEX_API_KEY=your_api_key_here
+# YANDEX_FOLDER_ID=your_folder_id_here
+# REDIS_URL=redis://localhost:6379/0
+# DATABASE_URL=sqlite:///transcriber.db
+```
+
+#### Step 4: Database Setup
+
+```bash
+# Set Flask app
 export FLASK_APP=backend/app.py
-flask db init && flask db migrate -m "Initial" && flask db upgrade
 
-# 5. Start services (use separate terminals)
-# Terminal 1: Flask server
+# Initialize database
+flask db init
+flask db migrate -m "Initial migration"
+flask db upgrade
+
+# Create uploads directory
+mkdir -p uploads
+```
+
+#### Step 5: Start Services
+
+**You need to run these commands in separate terminal windows/tabs:**
+
+**Terminal 1 - Flask Application:**
+```bash
+cd transcriber
+source venv/bin/activate
+export FLASK_APP=backend/app.py
 flask run --debug --host=0.0.0.0 --port=5000
+```
 
-# Terminal 2: Celery worker  
+**Terminal 2 - Celery Worker:**
+```bash
+cd transcriber
+source venv/bin/activate
 celery -A backend.celery_app worker --loglevel=info --pool=threads
 ```
 
-</details>
+**Terminal 3 - Redis (if not running as service):**
+```bash
+redis-server
+```
+
+#### Step 6: Verify Installation
+
+```bash
+# Test Redis connection
+redis-cli ping  # Should return "PONG"
+
+# Test Yandex API credentials
+python -c "
+import os, requests
+from dotenv import load_dotenv
+load_dotenv()
+key, folder = os.getenv('YANDEX_API_KEY'), os.getenv('YANDEX_FOLDER_ID')
+r = requests.post('https://stt.api.cloud.yandex.net/speech/v1/stt:recognize',
+    headers={'Authorization': f'Api-Key {key}'}, 
+    data={'folderId': folder, 'format': 'lpcm', 'sampleRateHertz': '8000'})
+print('✅ API works!' if r.status_code in [200,400] else f'❌ Error: {r.status_code}')
+"
+
+# Access application
+# Open: http://localhost:5000
+```
+
+#### Native Installation Troubleshooting
+
+**❌ Python 3.11 not available:**
+```bash
+# Ubuntu/Debian - add deadsnakes PPA
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.11 python3.11-venv python3.11-dev
+
+# macOS - use pyenv
+brew install pyenv
+pyenv install 3.11.7
+pyenv local 3.11.7
+```
+
+**❌ Redis connection errors:**
+```bash
+# Check Redis status
+sudo systemctl status redis-server
+
+# Start Redis manually
+redis-server --port 6379 --daemonize yes
+
+# Test connection
+redis-cli -p 6379 ping
+```
+
+**❌ FFmpeg not found:**
+```bash
+# Verify FFmpeg installation
+ffmpeg -version
+
+# Add to PATH (if needed)
+export PATH="/usr/local/bin:$PATH"
+
+# Set FFmpeg path in .env
+echo "FFMPEG_PATH=/usr/bin/ffmpeg" >> .env
+```
+
+**❌ Permission errors:**
+```bash
+# Fix upload directory permissions
+sudo chown -R $USER:$USER uploads/
+chmod 755 uploads/
+
+# Fix Python package permissions
+pip install --user --upgrade pip
+```
+
+**❌ Port already in use:**
+```bash
+# Find process using port 5000
+lsof -i :5000
+
+# Kill process (replace PID)
+kill -9 <PID>
+
+# Or use different port
+flask run --port=5001
+```
+
+#### Production Deployment (Native)
+
+For production without Docker:
+
+```bash
+# Install production WSGI server
+pip install gunicorn
+
+# Run with Gunicorn
+gunicorn --workers 4 --bind 0.0.0.0:5000 "backend.app:create_app()"
+
+# Run Celery in production
+celery -A backend.celery_app worker --loglevel=info --detach
+
+# Set up systemd services (recommended)
+# Create service files in /etc/systemd/system/
+```
 
 ## ⚙️ Configuration
 
