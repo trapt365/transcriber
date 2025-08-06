@@ -3,7 +3,7 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    FLASK_APP=backend/app.py \
+    FLASK_APP=backend.app:app \
     FLASK_ENV=production
 
 # Set work directory

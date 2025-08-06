@@ -5,5 +5,9 @@ from backend.app import create_app
 # Create the app instance for Flask CLI discovery
 app, socketio = create_app()
 
+def create_app_factory():
+    """Factory function for gunicorn."""
+    return create_app()[0]
+
 if __name__ == '__main__':
     socketio.run(app, debug=True)
