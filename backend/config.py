@@ -34,6 +34,11 @@ class Config:
     CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL') or REDIS_URL
     CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND') or REDIS_URL
     
+    # Audio Processing Configuration
+    FFMPEG_PATH = os.environ.get('FFMPEG_PATH') or '/usr/bin/ffmpeg'
+    MAX_AUDIO_DURATION = int(os.environ.get('MAX_AUDIO_DURATION') or 14400)  # 4 hours
+    AUDIO_PROCESSING_TIMEOUT = int(os.environ.get('AUDIO_PROCESSING_TIMEOUT') or 3600)  # 1 hour
+    
     # Security Configuration
     WTF_CSRF_ENABLED = os.environ.get('WTF_CSRF_ENABLED', 'True').lower() == 'true'
     WTF_CSRF_SECRET_KEY = os.environ.get('WTF_CSRF_SECRET_KEY') or SECRET_KEY
