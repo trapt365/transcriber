@@ -74,12 +74,10 @@ class ProductionConfig(Config):
     # Production specific settings
     FLASK_ENV = 'production'
     
-    # Ensure critical environment variables are set
-    if not os.environ.get('SECRET_KEY'):
-        raise ValueError("SECRET_KEY environment variable must be set in production")
-    
-    if not os.environ.get('YANDEX_API_KEY'):
-        raise ValueError("YANDEX_API_KEY environment variable must be set in production")
+    # Critical configuration values are validated when this configuration
+    # is explicitly selected. This prevents module import errors in
+    # non-production environments such as tests or development where these
+    # variables may intentionally be missing.
 
 
 class TestingConfig(Config):
@@ -106,6 +104,16 @@ config = {
 
 
 def get_config():
-    """Get configuration based on FLASK_ENV environment variable."""
+    """Get configuration based on FLASK_ENV environment variable.
+
+    For production configuration we validate that required environment
+    variables are present. This check occurs only when production is
+    selected, avoiding import-time errors in other environments."""
     env = os.environ.get('FLASK_ENV', 'development')
-    return config.get(env, config['default'])
+    cfg = config.get(env, config['default'])
+    if cfg is ProductionConfig:
+        if not os.environ.get('SECRET_KEY'):
+            raise ValueError("SECRET_KEY environment variable must be set in production")
+        if not os.environ.get('YANDEX_API_KEY'):
+            raise ValueError("YANDEX_API_KEY environment variable must be set in production")
+    return cfg
